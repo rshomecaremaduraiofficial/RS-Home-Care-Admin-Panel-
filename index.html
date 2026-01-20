@@ -48,7 +48,9 @@
       </div>
 
       <div id="loginMsg" class="msg"></div>
-      <div class="loginFooter">© <span id="yearNow"></span> RS Home Care</div>
+      <div class="loginFooter">
+        © <span id="yearNow"></span> RS Home Care • <span id="loginVersion">RS v1.1.0</span>
+      </div>
     </div>
   </div>
 
@@ -78,6 +80,7 @@
     <div class="layout">
       <aside class="sidebar">
         <button class="navItem active" data-page="dashboard">📊 Dashboard</button>
+
         <div class="navGroupTitle">Database</div>
         <button class="navItem" data-page="clients">👤 Client Details</button>
         <button class="navItem" data-page="employees">🧑‍💼 Employee Details</button>
@@ -86,8 +89,11 @@
         <button class="navItem" data-page="expense">🧾 Expense</button>
         <button class="navItem" data-page="income">📥 Income</button>
 
+        <div class="navGroupTitle">System</div>
+        <button class="navItem" data-page="settings">⚙️ Settings</button>
+
         <div class="sidebarNote">
-         This Database is completely design to manage the RS Home Care Company complete details.
+          This Database is completely design to manage the RS Home Care Company complete details.
         </div>
       </aside>
 
@@ -100,6 +106,49 @@
               <h2>Dashboard</h2>
               <p class="muted">Monthly / Yearly accounts, profit & loss, and recent transactions.</p>
             </div>
+          </div>
+
+          <!-- DASHBOARD FILTER (Month/Year + Apply) -->
+          <div class="panel" style="margin-bottom:12px;">
+            <div class="panelHeader">
+              <h3>Filter Accounts</h3>
+            </div>
+
+            <div class="grid2">
+              <label>
+                Select Month
+                <select id="dashMonth">
+                  <option value="">All Months</option>
+                  <option value="0">January</option>
+                  <option value="1">February</option>
+                  <option value="2">March</option>
+                  <option value="3">April</option>
+                  <option value="4">May</option>
+                  <option value="5">June</option>
+                  <option value="6">July</option>
+                  <option value="7">August</option>
+                  <option value="8">September</option>
+                  <option value="9">October</option>
+                  <option value="10">November</option>
+                  <option value="11">December</option>
+                </select>
+              </label>
+
+              <label>
+                Select Year
+                <input id="dashYear" type="number" placeholder="e.g. 2026" />
+              </label>
+            </div>
+
+            <div class="row" style="margin-top:10px;">
+              <button id="applyDashFilterBtn" class="btn primary">Apply</button>
+              <button id="clearDashFilterBtn" class="btn">Clear</button>
+              <small id="dashFilterLabel" class="muted" style="margin-left:10px;"></small>
+            </div>
+
+            <small class="muted" style="display:block;margin-top:8px;">
+              Tip: Choose Month + Year for monthly view, choose only Year for yearly summary, or clear for current month/year defaults.
+            </small>
           </div>
 
           <div class="cards">
@@ -232,7 +281,7 @@
           <div class="pageHeader">
             <div>
               <h2>Worker Verification</h2>
-              <p class="muted"> worker details + Aadhar image + Worker photo (both downloadable).</p>
+              <p class="muted">Worker details + Aadhar image + Worker photo (both downloadable).</p>
             </div>
             <div class="headerActions">
               <div class="searchWrap">
@@ -359,8 +408,73 @@
           </div>
         </section>
 
+        <!-- SETTINGS -->
+        <section class="page hidden" id="page-settings">
+          <div class="pageHeader">
+            <div>
+              <h2>Settings</h2>
+              <p class="muted">Admin-only options and system tools (Backup / Restore / Logs).</p>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="panel">
+              <div class="panelHeader">
+                <h3>Website / Version</h3>
+              </div>
+
+              <div class="list">
+                <div class="listItem">
+                  <div class="listItemTop">
+                    <div class="listItemName">Current Version</div>
+                    <div class="money" id="settingsVersionLabel">RS v1.1.0</div>
+                  </div>
+                  <div class="listItemMeta muted">Displayed in footer & login page.</div>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <button id="backupJsonBtn" class="btn">⬇️ Backup JSON</button>
+                <label class="btn" style="cursor:pointer;">
+                  ⬆️ Restore JSON
+                  <input id="restoreJsonInput" type="file" accept="application/json" style="display:none;">
+                </label>
+              </div>
+
+              <small class="muted" style="display:block;margin-top:8px;">
+                Backup/Restore keeps ALL data including images stored in localStorage.
+              </small>
+            </div>
+
+            <div class="panel">
+              <div class="panelHeader">
+                <h3>Admin Controls</h3>
+              </div>
+
+              <div class="row">
+                <button id="openAdminSettingsBtn" class="btn primary">Change Username / Password / 6-Digit Code</button>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <button id="clearAttemptLogsBtn" class="btn danger">Clear Login Attempt Logs</button>
+              </div>
+
+              <small class="muted" style="display:block;margin-top:8px;">
+                Only Admin can change login credentials & admin code.
+              </small>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:12px;">
+            <div class="panelHeader">
+              <h3>Login Attempt Logs</h3>
+            </div>
+            <div id="attemptLogsBox" class="list"></div>
+          </div>
+        </section>
+
         <footer class="footer">
-          © <span id="footerYear"></span> RS Home Care. All rights reserved.
+          © <span id="footerYear"></span> RS Home Care • <span id="footerVersion">RS v1.1.0</span>. All rights reserved.
         </footer>
       </main>
     </div>
