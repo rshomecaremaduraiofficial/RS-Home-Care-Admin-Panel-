@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RS Home Care — Admin Panel</title>
+
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="stylesheet" href="styles.css"/>
+
+  <!-- SheetJS for Excel export -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+
+<body>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="brand">
+        <img class="brandLogoImg" src="logo.png" alt="RS Home Care Logo">
+        <div>
+          <h1>RS Home Care</h1>
+          <p>Admin Panel Login</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <label>
+          Username
+          <input id="loginUser" type="text" placeholder="Enter username" autocomplete="username"/>
+        </label>
+        <label>
+          Password
+          <input id="loginPass" type="password" placeholder="Enter password" autocomplete="current-password"/>
+        </label>
+      </div>
+
+      <label>
+        6-Digit Admin Code
+        <input id="loginCode" type="text" inputmode="numeric" maxlength="6" placeholder="000000"/>
+        <small class="muted">Required to access admin panel.</small>
+      </label>
+
+      <div class="row">
+        <button id="loginBtn" class="btn primary">Login</button>
+        <button id="loginThemeBtn" class="btn ghost" title="Toggle theme">🌙 / ☀️</button>
+      </div>
+
+      <div id="loginMsg" class="msg"></div>
+      <div class="loginFooter">© <span id="yearNow"></span> RS Home Care</div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="app hidden">
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="leftControls">
+        <button id="exportExcelBtn" class="btn" title="Download Excel">⬇️ Excel</button>
+        <button id="themeBtn" class="btn" title="Toggle theme">🌙 / ☀️</button>
+      </div>
+
+      <div class="centerBrand">
+        <img class="topLogoImg" src="logo.png" alt="RS Home Care Logo">
+        <div class="centerBrandText">
+          <div class="brandTitle">RS Home Care</div>
+          <div class="brandSub">Accounts & Database</div>
+        </div>
+      </div>
+
+      <div class="rightControls">
+        <button id="logoutBtn" class="btn danger" title="Logout">Logout</button>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <div class="layout">
+      <aside class="sidebar">
+        <button class="navItem active" data-page="dashboard">📊 Dashboard</button>
+        <div class="navGroupTitle">Database</div>
+        <button class="navItem" data-page="clients">👤 Client Details</button>
+        <button class="navItem" data-page="employees">🧑‍💼 Employee Details</button>
+        <button class="navItem" data-page="workers">✅ Worker Verification</button>
+        <button class="navItem" data-page="salary">💰 Salary Details</button>
+        <button class="navItem" data-page="expense">🧾 Expense</button>
+        <button class="navItem" data-page="income">📥 Income</button>
+
+        <div class="sidebarNote">
+         This Database is completely design to manage the RS Home Care Company complete details.
+        </div>
+      </aside>
+
+      <main class="content">
+
+        <!-- DASHBOARD -->
+        <section class="page" id="page-dashboard">
+          <div class="pageHeader">
+            <div>
+              <h2>Dashboard</h2>
+              <p class="muted">Monthly / Yearly accounts, profit & loss, and recent transactions.</p>
+            </div>
+          </div>
+
+          <div class="cards">
+            <div class="card">
+              <div class="cardTitle">This Month Income</div>
+              <div class="cardValue" id="mIncome">0</div>
+              <div class="cardHint muted" id="mLabel"></div>
+            </div>
+            <div class="card">
+              <div class="cardTitle">This Month Expense</div>
+              <div class="cardValue" id="mExpense">0</div>
+              <div class="cardHint muted">Includes Salary + Expense entries</div>
+            </div>
+            <div class="card">
+              <div class="cardTitle">This Month Profit / Loss</div>
+              <div class="cardValue" id="mProfit">0</div>
+              <div class="cardHint muted">Income − Expense</div>
+            </div>
+          </div>
+
+          <div class="cards">
+            <div class="card">
+              <div class="cardTitle">This Year Income</div>
+              <div class="cardValue" id="yIncome">0</div>
+              <div class="cardHint muted" id="yLabel"></div>
+            </div>
+            <div class="card">
+              <div class="cardTitle">This Year Expense</div>
+              <div class="cardValue" id="yExpense">0</div>
+              <div class="cardHint muted">Includes Salary + Expense entries</div>
+            </div>
+            <div class="card">
+              <div class="cardTitle">This Year Profit / Loss</div>
+              <div class="cardValue" id="yProfit">0</div>
+              <div class="cardHint muted">Income − Expense</div>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="panel">
+              <div class="panelHeader">
+                <h3>Recent Income</h3>
+              </div>
+              <div id="recentIncome" class="list"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panelHeader">
+                <h3>Recent Expense</h3>
+              </div>
+              <div id="recentExpense" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CLIENTS -->
+        <section class="page hidden" id="page-clients">
+          <div class="pageHeader">
+            <div>
+              <h2>Client Details</h2>
+              <p class="muted">Add / Edit / View / Delete clients. Amount Paid adds to Income.</p>
+            </div>
+            <div class="headerActions">
+              <div class="searchWrap">
+                <span class="icon">🔎</span>
+                <input id="searchClients" type="text" placeholder="Search clients..."/>
+              </div>
+              <button class="btn primary" id="addClientBtn">+ Add Client</button>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table" id="clientsTable">
+              <thead>
+                <tr>
+                  <th>Client Name</th>
+                  <th>Phone</th>
+                  <th>DOB</th>
+                  <th>Age</th>
+                  <th>Amount Paid</th>
+                  <th>Balance</th>
+                  <th>Invoice</th>
+                  <th>Entry Date</th>
+                  <th>Worker</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- EMPLOYEES -->
+        <section class="page hidden" id="page-employees">
+          <div class="pageHeader">
+            <div>
+              <h2>Employee Details</h2>
+              <p class="muted">Salary Allocated is for viewing only (does not affect income).</p>
+            </div>
+            <div class="headerActions">
+              <div class="searchWrap">
+                <span class="icon">🔎</span>
+                <input id="searchEmployees" type="text" placeholder="Search employees..."/>
+              </div>
+              <button class="btn primary" id="addEmployeeBtn">+ Add Employee</button>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table" id="employeesTable">
+              <thead>
+                <tr>
+                  <th>Access No</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>DOB</th>
+                  <th>Age</th>
+                  <th>Role</th>
+                  <th>Salary Allocated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- WORKERS -->
+        <section class="page hidden" id="page-workers">
+          <div class="pageHeader">
+            <div>
+              <h2>Worker Verification</h2>
+              <p class="muted"> worker details + Aadhar image + Worker photo (both downloadable).</p>
+            </div>
+            <div class="headerActions">
+              <div class="searchWrap">
+                <span class="icon">🔎</span>
+                <input id="searchWorkers" type="text" placeholder="Search workers..."/>
+              </div>
+              <button class="btn primary" id="addWorkerBtn">+ Add Worker</button>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table" id="workersTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>DOB</th>
+                  <th>Age</th>
+                  <th>Aadhar</th>
+                  <th>Specialist</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SALARY -->
+        <section class="page hidden" id="page-salary">
+          <div class="pageHeader">
+            <div>
+              <h2>Salary Details</h2>
+              <p class="muted">Salary Amount is added to Expense automatically.</p>
+            </div>
+            <div class="headerActions">
+              <div class="searchWrap">
+                <span class="icon">🔎</span>
+                <input id="searchSalary" type="text" placeholder="Search salary records..."/>
+              </div>
+              <button class="btn primary" id="addSalaryBtn">+ Add Salary</button>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table" id="salaryTable">
+              <thead>
+                <tr>
+                  <th>Access No</th>
+                  <th>Employee</th>
+                  <th>Slip No</th>
+                  <th>Amount</th>
+                  <th>Paid Date</th>
+                  <th>Paid Option</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- EXPENSE -->
+        <section class="page hidden" id="page-expense">
+          <div class="pageHeader">
+            <div>
+              <h2>Expense</h2>
+              <p class="muted">Add / View / Delete expenses. (Salary is also counted in Expense.)</p>
+            </div>
+            <div class="headerActions">
+              <div class="searchWrap">
+                <span class="icon">🔎</span>
+                <input id="searchExpense" type="text" placeholder="Search expenses..."/>
+              </div>
+              <button class="btn primary" id="addExpenseBtn">+ Add Expense</button>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table" id="expenseTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Amount</th>
+                  <th>For What</th>
+                  <th>Date</th>
+                  <th>Payment Method</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- INCOME -->
+        <section class="page hidden" id="page-income">
+          <div class="pageHeader">
+            <div>
+              <h2>Income</h2>
+              <p class="muted">Income is auto-created from Client “Amount Paid”.</p>
+            </div>
+            <div class="headerActions">
+              <div class="searchWrap">
+                <span class="icon">🔎</span>
+                <input id="searchIncome" type="text" placeholder="Search income..."/>
+              </div>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table class="table" id="incomeTable">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Name</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Invoice</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <footer class="footer">
+          © <span id="footerYear"></span> RS Home Care. All rights reserved.
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modal" class="modal hidden">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <h3 id="modalTitle">Form</h3>
+        <button id="modalClose" class="btn ghost">✕</button>
+      </div>
+      <form id="modalForm" class="form"></form>
+      <div class="modalActions">
+        <button id="modalCancel" class="btn">Cancel</button>
+        <button id="modalSave" class="btn primary" type="submit" form="modalForm">Save</button>
+      </div>
+      <div id="modalMsg" class="msg"></div>
+    </div>
+  </div>
+</body>
+</html>
