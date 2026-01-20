@@ -163,6 +163,7 @@ function sumByYear(items, dateKey, amountKey){
   return total;
 }
 
+
 /* ===========================
    UI helpers
    =========================== */
@@ -226,6 +227,8 @@ function openModal(title, fields, initialValues, onSave){
     }
 
     form.appendChild(wrap);
+let toastTimer;
+
 
     // Other field support
     if(f.otherKey){
@@ -963,7 +966,6 @@ function wireSearch(db){
   $("#searchExpense").addEventListener("input", (e)=> renderExpense(db, e.target.value));
   $("#searchIncome").addEventListener("input", (e)=> renderIncome(db, e.target.value));
 }
-
 /* ===========================
    Excel Export
    =========================== */
