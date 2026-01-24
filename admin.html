@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Admin - Attendance</title>
+  <link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+  <style>
+    :root{--blue:#0b4f8a;--green:#10b21e;--red:#d32f2f;--gray:#9aa7b2;--bg:#f2f4f7;}
+    body{margin:0;background:var(--bg);font-family:Arial,sans-serif}
+    .wrap{display:flex;justify-content:center;padding:16px 10px}
+
+    .panel{
+      width:100%;
+      max-width:1100px;
+      background:#fff;
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.10);
+    }
+
+    .top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .title{font-weight:900;color:#223;font-size:18px}
+    .back{color:#345;text-decoration:none;font-weight:800}
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:10px}
+    label{display:block;font-size:12px;margin:8px 0 6px;color:#334}
+    input,select{
+      padding:10px;border-radius:10px;border:1px solid #ccd5df;outline:none;
+    }
+    .field{min-width:160px;flex:1 1 180px}
+    .btn{
+      padding:11px 14px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:900;cursor:pointer;
+    }
+    .btn.gray{background:#3b556b}
+    .btn.danger{background:var(--red)}
+    .msg{margin-top:10px;font-size:13px;color:#556}
+
+    .counts{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .pill{background:#fff;border:1px solid #e3e8ee;border-radius:999px;padding:6px 10px;box-shadow:0 4px 12px rgba(0,0,0,.06);font-size:13px}
+
+    /* Calendar */
+    .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:12px}
+    .dow{font-size:12px;font-weight:900;color:#456;text-align:center;padding:6px 0;background:#f6f8fb;border-radius:10px}
+    .dayBox{
+      background:#fff;border-radius:12px;border:1px solid #e3e8ee;padding:10px;min-height:92px;
+      box-shadow:0 6px 16px rgba(0,0,0,.06);position:relative;overflow:hidden;
+    }
+    .empty{visibility:hidden}
+    .dayNum{font-weight:900;color:#123;font-size:14px}
+    .status{margin-top:6px;font-size:12px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}
+    .time{margin-top:4px;font-size:11px;color:#456;word-break:break-word}
+    .badge{position:absolute;right:10px;top:10px;font-size:10px;font-weight:900;padding:4px 8px;border-radius:999px;color:#fff}
+
+    .present{border-color:rgba(16,178,30,.35)}
+    .present .badge{background:var(--green)}
+    .absent{border-color:rgba(211,47,47,.35);background:rgba(211,47,47,.06)}
+    .absent .badge{background:var(--red)}
+    .holiday{border-color:rgba(154,167,178,.55);background:rgba(154,167,178,.10)}
+    .holiday .badge{background:var(--gray)}
+
+    .hint{margin-top:10px;font-size:13px;color:#556}
+    .clickable{cursor:pointer}
+
+    @media (max-width:720px){
+      .panel{max-width:560px}
+      .grid{gap:8px}
+      .dayBox{min-height:84px;padding:8px}
+      .counts{justify-content:flex-start}
+    }
+
+    /* Scroll-to-top */
+    #scrollTopBtn{
+      position:fixed;bottom:22px;right:18px;width:44px;height:44px;border-radius:50%;
+      border:none;background:var(--blue);color:#fff;font-size:20px;font-weight:900;cursor:pointer;
+      display:none;box-shadow:0 8px 20px rgba(0,0,0,.25);z-index:1000;
+    }
+
+    /* ✅ NEW: Centered Login Layout */
+    .loginCenter{
+      min-height: calc(100vh - 100px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px;
+    }
+    .loginCard{
+      width:100%;
+      max-width:520px;
+      background:#fff;
+      border:1px solid #e7edf5;
+      border-radius:16px;
+      box-shadow:0 10px 26px rgba(0,0,0,.10);
+      padding:18px;
+    }
+    .loginTitle{
+      font-size:18px;
+      font-weight:900;
+      color:#223;
+      margin:0 0 6px;
+      text-align:center;
+    }
+    .loginSub{
+      font-size:13px;
+      color:#667;
+      text-align:center;
+      margin:0 0 14px;
+    }
+    .loginGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      align-items:end;
+    }
+    .loginGrid .span2{grid-column:1 / -1;}
+    .loginGrid input{
+      width:100%;
+      box-sizing:border-box;
+    }
+    .loginBtn{
+      width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+    }
+    @media (max-width:600px){
+      .loginGrid{grid-template-columns:1fr;}
+    }
+    /* =========================
+   📱 MOBILE VIEW FIXES
+   ========================= */
+@media (max-width: 600px){
+
+  /* Page padding */
+  .wrap{
+    padding:10px 6px;
+  }
+
+  .panel{
+    padding:12px;
+    border-radius:12px;
+  }
+
+  /* ---------- LOGIN ---------- */
+  .loginCenter{
+    min-height:auto;
+    padding:0;
+  }
+
+  .loginCard{
+    padding:16px;
+    border-radius:14px;
+  }
+
+  .loginGrid{
+    grid-template-columns:1fr !important;
+    gap:10px;
+  }
+
+  .loginBtn{
+    padding:10px 12px;
+    font-size:14px;
+  }
+
+  /* ---------- FILTER ROW ---------- */
+  .row{
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
+  }
+
+  .row .field{
+    width:100%;
+    min-width:100%;
+  }
+
+  .row .btn{
+    width:100%;
+    padding:9px 12px;
+    font-size:14px;
+  }
+
+  /* ---------- COUNTS ---------- */
+  .counts{
+    width:100%;
+    justify-content:space-between;
+    margin-top:6px;
+  }
+
+  .pill{
+    font-size:12px;
+    padding:5px 8px;
+  }
+
+  /* ---------- CALENDAR ---------- */
+  .grid{
+    gap:6px;
+  }
+
+  .dayBox{
+    min-height:72px;
+    padding:6px;
+    border-radius:10px;
+  }
+
+  .dayNum{
+    font-size:13px;
+  }
+
+  .status{
+    font-size:11px;
+  }
+
+  .time{
+    font-size:10px;
+    line-height:1.2;
+  }
+
+  .badge{
+    font-size:9px;
+    padding:3px 6px;
+    top:6px;
+    right:6px;
+  }
+
+  /* ---------- SCROLL BUTTON ---------- */
+  #scrollTopBtn{
+    width:40px;
+    height:40px;
+    font-size:18px;
+  }
+}
+
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="top">
+      <div class="title">Admin Attendance</div>
+      <a class="back" href="index.html">← Back</a>
+    </div>
+
+    <!-- LOGIN (Centered) -->
+    <div id="loginBox" class="loginCenter">
+      <div class="loginCard">
+        <div class="loginTitle">Admin Login</div>
+        <div class="loginSub">Enter admin username & password to continue</div>
+
+        <div class="loginGrid">
+          <div class="field">
+            <label>Username</label>
+            <input id="user" placeholder="admin">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input id="pass" type="password" placeholder="admin123">
+          </div>
+
+          <div class="field span2">
+            <button class="btn loginBtn" id="loginBtn">Login</button>
+          </div>
+        </div>
+
+        <div class="msg" id="loginMsg" style="text-align:center;"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN (unchanged) -->
+    <div id="adminBox" style="display:none;">
+      <div class="row">
+        <div class="field">
+          <label>Year</label>
+          <select id="yearSel"></select>
+        </div>
+        <div class="field">
+          <label>Month</label>
+          <select id="monthSel"></select>
+        </div>
+        <div class="field" style="min-width:140px;flex:0 0 auto;">
+          <button class="btn" id="loadBtn">Load</button>
+        </div>
+        <div class="field" style="min-width:160px;flex:0 0 auto;">
+          <button class="btn danger" id="resetBtn">Reset Month</button>
+        </div>
+
+        <div style="margin-left:auto" class="counts">
+          <div class="pill" id="pCount">Present: 0</div>
+          <div class="pill" id="aCount">Absent: 0</div>
+          <div class="pill" id="hCount">Holidays: 0</div>
+        </div>
+      </div>
+
+      <div class="msg" id="statusMsg"></div>
+
+      <div class="grid" id="dowRow"></div>
+      <div class="grid" id="cal"></div>
+
+      <div class="hint">Tip: Click a <b>PRESENT</b> day to delete that day’s attendance (admin only).</div>
+    </div>
+  </div>
+</div>
+
+<button id="scrollTopBtn" title="Go to top">↑</button>
+
+<script>
+  // ✅ Your Apps Script Web App URL:
+  const API_URL = "https://script.google.com/macros/s/AKfycbw_iL4aEySi7CllmQaoFOrKpymnuFCjbKLD3-ck1BBdfwvWp28mb2kLPMSw8ERKTlrA/exec";
+
+  // JSONP helper
+  function jsonp(params){
+    return new Promise((resolve, reject) => {
+      const cb = "cb_" + Math.random().toString(36).slice(2);
+      params.callback = cb;
+
+      const url = new URL(API_URL);
+      Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+
+      const s = document.createElement("script");
+      s.src = url.toString();
+      s.onerror = () => reject(new Error("Network error"));
+      window[cb] = (data) => {
+        resolve(data);
+        delete window[cb];
+        s.remove();
+      };
+      document.body.appendChild(s);
+    });
+  }
+
+  // Scroll-to-top
+  const scrollBtn = document.getElementById("scrollTopBtn");
+  window.addEventListener("scroll", () => {
+    scrollBtn.style.display = window.scrollY > 250 ? "block" : "none";
+  });
+  scrollBtn.addEventListener("click", () => window.scrollTo({top:0, behavior:"smooth"}));
+
+  // UI refs
+  const loginBox = document.getElementById("loginBox");
+  const adminBox = document.getElementById("adminBox");
+  const loginMsg = document.getElementById("loginMsg");
+  const statusMsg = document.getElementById("statusMsg");
+
+  const yearSel = document.getElementById("yearSel");
+  const monthSel = document.getElementById("monthSel");
+  const loadBtn = document.getElementById("loadBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const dowRow = document.getElementById("dowRow");
+  const cal = document.getElementById("cal");
+
+  const pCount = document.getElementById("pCount");
+  const aCount = document.getElementById("aCount");
+  const hCount = document.getElementById("hCount");
+
+  let TOKEN = "";
+
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const MONTHS = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function daysInMonth(y, m1to12){ return new Date(y, m1to12, 0).getDate(); }
+  function firstDow(y, m1to12){ return new Date(y, m1to12-1, 1).getDay(); } // 0=Sun
+  function isSunday(y, m1to12, d){ return new Date(y, m1to12-1, d).getDay() === 0; }
+  function dayKey(y, m1to12, d){ return `${y}-${pad2(m1to12)}-${pad2(d)}`; }
+  function monthKey(y, m1to12){ return `${y}-${pad2(m1to12)}`; }
+
+  function setMsg(el, text, color){
+    el.textContent = text || "";
+    if(color) el.style.color = color;
+    else el.style.color = "#556";
+  }
+
+  // Build filters + headers
+  (function init(){
+    dowRow.innerHTML = "";
+    for(const d of DOW){
+      const el = document.createElement("div");
+      el.className = "dow";
+      el.textContent = d;
+      dowRow.appendChild(el);
+    }
+
+    const now = new Date();
+    const y0 = now.getFullYear();
+    yearSel.innerHTML = "";
+    for(let y = y0 - 5; y <= y0 + 5; y++){
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      if(y === y0) opt.selected = true;
+      yearSel.appendChild(opt);
+    }
+
+    monthSel.innerHTML = "";
+    const mNow = now.getMonth() + 1;
+    for(let m = 1; m <= 12; m++){
+      const opt = document.createElement("option");
+      opt.value = String(m);
+      opt.textContent = MONTHS[m-1];
+      if(m === mNow) opt.selected = true;
+      monthSel.appendChild(opt);
+    }
+  })();
+
+  // LOGIN
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+    setMsg(loginMsg, "Logging in...");
+    const username = document.getElementById("user").value.trim();
+    const password = document.getElementById("pass").value.trim();
+
+    try{
+      const data = await jsonp({ action:"login", username, password });
+      if(data.ok){
+        TOKEN = data.token;
+        setMsg(loginMsg, "Login success ✅", "green");
+        loginBox.style.display = "none";
+        adminBox.style.display = "block";
+        await loadMonth();
+      } else {
+        setMsg(loginMsg, data.error || "Login failed", "crimson");
+      }
+    } catch(e){
+      setMsg(loginMsg, "Network error. Check API_URL / deployment access.", "crimson");
+    }
+  });
+
+  // LOAD
+  loadBtn.addEventListener("click", loadMonth);
+
+  async function loadMonth(){
+    setMsg(statusMsg, "Loading...");
+    cal.innerHTML = "";
+    pCount.textContent = "Present: 0";
+    aCount.textContent = "Absent: 0";
+    hCount.textContent = "Holidays: 0";
+
+    const y = Number(yearSel.value);
+    const m = Number(monthSel.value);
+    const mk = monthKey(y, m);
+
+    try{
+      const data = await jsonp({ action:"listMonth", token:TOKEN, month: mk });
+      if(!data.ok){
+        setMsg(statusMsg, data.error || "Failed", "crimson");
+        return;
+      }
+
+      const byDate = {};
+      for(const r of (data.records || [])){
+        const dk = String(r.date || "");
+        if(!byDate[dk]) byDate[dk] = [];
+        byDate[dk].push(r);
+      }
+
+      renderCalendar(y, m, byDate);
+      setMsg(statusMsg, `Showing ${MONTHS[m-1]} ${y}`);
+    } catch(e){
+      setMsg(statusMsg, "Network error. Please try again.", "crimson");
+    }
+  }
+
+  function renderCalendar(y, m, byDate){
+    cal.innerHTML = "";
+
+    const totalDays = daysInMonth(y, m);
+    const start = firstDow(y, m);
+    let presentCount = 0, absentCount = 0, holidayCount = 0;
+
+    for(let i = 0; i < start; i++){
+      const box = document.createElement("div");
+      box.className = "dayBox empty";
+      cal.appendChild(box);
+    }
+
+    for(let d = 1; d <= totalDays; d++){
+      const dk = dayKey(y, m, d);
+      const sunday = isSunday(y, m, d);
+
+      const box = document.createElement("div");
+      box.className = "dayBox";
+
+      const dayNum = document.createElement("div");
+      dayNum.className = "dayNum";
+      dayNum.textContent = d;
+      box.appendChild(dayNum);
+
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      box.appendChild(badge);
+
+      const status = document.createElement("div");
+      status.className = "status";
+      box.appendChild(status);
+
+      const time = document.createElement("div");
+      time.className = "time";
+      box.appendChild(time);
+
+      if(sunday){
+        box.classList.add("holiday");
+        badge.textContent = "HOLIDAY";
+        status.textContent = "SUNDAY";
+        time.textContent = "";
+        holidayCount++;
+      } else if(byDate[dk] && byDate[dk].length){
+        box.classList.add("present", "clickable");
+        badge.textContent = "PRESENT";
+        status.textContent = "PRESENT";
+
+        const records = byDate[dk];
+        const first = records[0];
+        let extra = records.length > 1 ? ` (+${records.length - 1} more)` : "";
+
+        time.textContent =
+          `${first.name || ""} (${first.accessNo || ""})` +
+          (first.timestamp ? `\n${first.timestamp}` : "") +
+          extra;
+
+        presentCount++;
+        box.addEventListener("click", () => deleteDayRecords(dk, records));
+      } else {
+        box.classList.add("absent");
+        badge.textContent = "ABSENT";
+        status.textContent = "ABSENT";
+        time.textContent = "";
+        absentCount++;
+      }
+
+      cal.appendChild(box);
+    }
+
+    pCount.textContent = `Present: ${presentCount}`;
+    aCount.textContent = `Absent: ${absentCount}`;
+    hCount.textContent = `Holidays: ${holidayCount}`;
+  }
+
+  async function deleteDayRecords(dateKeyStr, records){
+    if(!records || !records.length) return;
+
+    const msg = records.length === 1
+      ? `Delete attendance for ${dateKeyStr}?`
+      : `Delete ALL (${records.length}) attendance records for ${dateKeyStr}?`;
+
+    if(!confirm(msg)) return;
+
+    setMsg(statusMsg, "Deleting...");
+    try{
+      const sorted = [...records].sort((a,b) => (b.rowIndex||0) - (a.rowIndex||0));
+
+      for(const r of sorted){
+        const resp = await jsonp({ action:"delete", token:TOKEN, rowIndex: r.rowIndex });
+        if(!resp.ok){
+          setMsg(statusMsg, resp.error || "Delete failed", "crimson");
+          return;
+        }
+      }
+
+      setMsg(statusMsg, `Deleted ${records.length} record(s) for ${dateKeyStr}`, "green");
+      await loadMonth();
+    } catch(e){
+      setMsg(statusMsg, "Network error while deleting.", "crimson");
+    }
+  }
+
+  resetBtn.addEventListener("click", async () => {
+    const y = Number(yearSel.value);
+    const m = Number(monthSel.value);
+    const mk = monthKey(y, m);
+
+    if(!confirm(`Reset month ${mk}? This will delete ALL records in this month.`)) return;
+
+    setMsg(statusMsg, "Resetting month...");
+    try{
+      const data = await jsonp({ action:"resetMonth", token:TOKEN, month: mk });
+      if(data.ok){
+        setMsg(statusMsg, `Month ${mk} cleared ✅`, "green");
+        await loadMonth();
+      } else {
+        setMsg(statusMsg, data.error || "Reset failed", "crimson");
+      }
+    } catch(e){
+      setMsg(statusMsg, "Network error while resetting.", "crimson");
+    }
+  });
+</script>
+</body>
+</html>
