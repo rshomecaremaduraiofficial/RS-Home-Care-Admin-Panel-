@@ -1,6 +1,3 @@
-/* ===========================
-   RS Home Care — app.js (Upgraded)
-   =========================== */
 
 const APP_CONFIG = {
   COMPANY_NAME: "RS Home Care",
@@ -891,20 +888,20 @@ function clientFields(){
     { key:"age", label:"Age", type:"number", placeholder:"Auto", help:"Auto calculated from DOB (editable if needed)." },
     { key:"amountPaid", label:"Amount Paid", type:"number", placeholder:"0" },
     { key:"balanceAmount", label:"Balance", type:"number", placeholder:"0" },
-    { key:"invoiceNumber", label:"Invoice", type:"text", placeholder:"INV-001" },
+    { key:"invoiceNumber", label:"Invoice", type:"text", placeholder:"RS-2140" },
     { key:"entryDate", label:"Entry Date", type:"date" },
-    { key:"workerName", label:"Worker", type:"text", placeholder:"Worker name" }
+    { key:"workerName", label:"Allocated Worker", type:"text", placeholder:"Worker name" }
   ];
 }
 
 function employeeFields(){
   return [
-    { key:"accessNo", label:"Access No", type:"text", placeholder:"e.g. 1001" },
+    { key:"accessNo", label:"Access No", type:"text", placeholder:"RS-14160" },
     { key:"name", label:"Employee Name", type:"text" },
     { key:"phone", label:"Phone", type:"text", inputmode:"numeric", maxlength:15 },
     { key:"dob", label:"DOB", type:"date", autoAgeTarget:"age" },
     { key:"age", label:"Age", type:"number", placeholder:"Auto" },
-    { key:"role", label:"Role", type:"text", placeholder:"e.g. Manager" },
+    { key:"role", label:"Role", type:"text", placeholder:"Manager" },
     { key:"salaryAllocated", label:"Salary Allocated", type:"number", placeholder:"0" }
   ];
 }
@@ -1155,14 +1152,39 @@ function refreshAll(db){
    Event wiring
    =========================== */
 function wireNav(){
-  $$(".navItem").forEach(btn => {
+  // Only bind real pages
+  $$(".navItem[data-page]").forEach(btn => {
     btn.addEventListener("click", () => {
       const page = btn.getAttribute("data-page");
-      showPage(page);
+      if(page) showPage(page);
     });
   });
 }
+function wireAttendanceMenu(){
+  const toggleBtn = $("#attendanceToggle");
+  const menu = $("#attendanceMenu");
+  if(!toggleBtn || !menu) return;
 
+  toggleBtn.addEventListener("click", () => {
+    menu.classList.toggle("hidden");
+  });
+
+  // Optional: handle clicks on the 7 buttons
+  menu.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-att]");
+    if(!btn) return;
+
+    const key = btn.getAttribute("data-att");
+
+    // For now just show which one clicked
+    alert("Attendance clicked: " + key);
+
+    // Later you can do:
+    // - showPage("somePage")
+    // - openModal(...)
+    // - window.open("somefile.html","_blank")
+  });
+}
 function wireDashboardFilter(db){
   $("#applyDashFilterBtn")?.addEventListener("click", () => {
     const m = $("#dashMonth")?.value ?? "";
@@ -1462,8 +1484,9 @@ async function init(){
   $("#exportExcelBtn")?.addEventListener("click", () => exportExcel(db));
 
   // nav + dashboard filter
-  wireNav();
-  wireDashboardFilter(db);
+ wireNav();
+wireAttendanceMenu();
+wireDashboardFilter(db);
 
   // add buttons
   wireAddButtons(db);
