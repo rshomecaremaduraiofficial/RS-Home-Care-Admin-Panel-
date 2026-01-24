@@ -564,7 +564,6 @@
             <div style="grid-column:1 / -1;">
               <label>Type of Work</label>
               <select id="inWorkType">
-                <!-- ✅ labels are simple work names -->
                 <option value="homecare_basic">Home Care</option>
                 <option value="homecare_elder">Elder Care</option>
                 <option value="homecare_patient">Patient Care</option>
@@ -573,7 +572,6 @@
                 <option value="nursing_postop">Post-Op Nursing</option>
                 <option value="nursing_wound">Wound Dressing</option>
 
-                <!-- ✅ NEW options -->
                 <option value="baby_sitting">Baby Sitting</option>
                 <option value="child_care">Child Care</option>
                 <option value="cooking">Cooking</option>
@@ -678,6 +676,16 @@ Address: 2-3, 22/2 3rd street, Koodal Naga, Madurai – 625 018.</textarea>
               <label>Upload Signature (Common)</label>
               <input id="setSig" type="file" accept="image/*"/>
             </div>
+          </div>
+
+          <!-- ✅ Backup / Restore JSON -->
+          <label>Backup / Restore (JSON)</label>
+          <div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+            <button class="btn" onclick="backupJson()">Backup JSON</button>
+
+            <!-- Hidden file input (triggered by the button) -->
+            <input id="restoreJsonInput" type="file" accept="application/json,.json" style="display:none" />
+            <button class="btn ghost" onclick="document.getElementById('restoreJsonInput').click()">Restore JSON</button>
           </div>
 
           <div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
@@ -1038,7 +1046,7 @@ Address: 2-3, 22/2 3rd street, Koodal Naga, Madurai – 625 018.`
     applyToPreview();
   }
 
-  // ✅ NEW: Quick edit service amount -> updates Item #1 amount
+  // ✅ Quick edit service amount -> updates Item #1 amount
   function syncServiceAmountUI(){
     const el = document.getElementById("inServiceAmt");
     if(!el) return;
@@ -1337,10 +1345,122 @@ Address: 2-3, 22/2 3rd street, Koodal Naga, Madurai – 625 018.`
     pdf.save(`Invoice${invNo ? "_" + invNo : ""}.pdf`);
   }
 
+  // ===========================
+  // ✅ BACKUP / RESTORE JSON
+  // ===========================
+  function downloadTextFile(filename, text, mime="application/json"){
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 500);
+  }
+
+  function backupJson(){
+    // Make sure latest settings in UI are saved to localStorage
+    // (without showing alert)
+    saveSettings(false);
+
+    const payload = {
+      app: "Invoice Studio",
+      version: "backup_v1",
+      exportedAt: new Date().toISOString(),
+      keys: { settings: KEY_SETTINGS, invoices: KEY_INVOICES },
+      settings: (()=>{
+        try { return JSON.parse(localStorage.getItem(KEY_SETTINGS) || "null"); } catch { return null; }
+      })(),
+      invoices: (()=>{
+        try { return JSON.parse(localStorage.getItem(KEY_INVOICES) || "[]"); } catch { return []; }
+      })()
+    };
+
+    const dateTag = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+    downloadTextFile(`invoice_backup_${dateTag}.json`, JSON.stringify(payload, null, 2));
+    alert("Backup JSON downloaded.");
+  }
+
+  function isObject(x){ return x && typeof x === "object" && !Array.isArray(x); }
+
+  function restoreFromPayload(payload){
+    // Accept two formats:
+    // 1) Our backup format: { settings, invoices }
+    // 2) A raw object with keys equal to KEY_SETTINGS/KEY_INVOICES
+    let nextSettings = null;
+    let nextInvoices = null;
+
+    if(isObject(payload) && ("settings" in payload || "invoices" in payload)){
+      nextSettings = payload.settings ?? null;
+      nextInvoices = payload.invoices ?? [];
+    } else if(isObject(payload) && (KEY_SETTINGS in payload || KEY_INVOICES in payload)){
+      // raw localStorage export
+      try { nextSettings = JSON.parse(payload[KEY_SETTINGS] || "null"); } catch { nextSettings = null; }
+      try { nextInvoices = JSON.parse(payload[KEY_INVOICES] || "[]"); } catch { nextInvoices = []; }
+    } else {
+      throw new Error("Invalid backup file format.");
+    }
+
+    if(nextSettings && !isObject(nextSettings)) nextSettings = null;
+    if(!Array.isArray(nextInvoices)) nextInvoices = [];
+
+    // Confirm overwrite
+    const ok = confirm(
+      "Restore will overwrite your current Settings and Saved Invoices in this browser.\n\nDo you want to continue?"
+    );
+    if(!ok) return;
+
+    // Save to localStorage
+    localStorage.setItem(KEY_SETTINGS, JSON.stringify({ ...settings, ...(nextSettings || {}) }));
+    localStorage.setItem(KEY_INVOICES, JSON.stringify(nextInvoices));
+
+    // Reload in-memory state + UI
+    // settings object is updated via loadSettings()
+    loadSettings();
+    try{
+      const rawSet = localStorage.getItem(KEY_SETTINGS);
+      if(rawSet) settings = { ...settings, ...JSON.parse(rawSet) };
+    }catch{}
+
+    renderSavedList();
+
+    // Keep current editor content intact, but update preview with restored settings
+    applyToPreview();
+
+    alert("Restore completed.");
+  }
+
+  async function restoreJsonFromFile(file){
+    const text = await file.text();
+    let payload;
+    try{
+      payload = JSON.parse(text);
+    }catch{
+      throw new Error("This file is not valid JSON.");
+    }
+    restoreFromPayload(payload);
+  }
+
+  // Wire restore input
+  document.getElementById("restoreJsonInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    try{
+      await restoreJsonFromFile(file);
+    }catch(err){
+      alert(err?.message || "Restore failed.");
+    }finally{
+      // reset input so selecting same file again works
+      e.target.value = "";
+    }
+  });
+
   // ✅ Auto-fill when dropdown changes
   document.getElementById("inWorkType").addEventListener("change", () => applyWorkTemplate(true));
 
-  // ✅ NEW: quick service amount -> Item #1 amount
+  // ✅ Quick service amount -> Item #1 amount
   document.getElementById("inServiceAmt").addEventListener("input", (e) => {
     if(!items.length) items = [{ desc:"", amt:0 }];
     items[0].amt = Number(e.target.value || 0);
