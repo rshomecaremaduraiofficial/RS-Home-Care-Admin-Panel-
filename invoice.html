@@ -1,0 +1,1368 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Invoice Generator Panel</title>
+  <link rel="icon" href="logo.png" type="image/png">
+
+  <!-- PDF libs -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
+      --line: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --paper:#fff;
+      --ink:#111827;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --r:16px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 650px at 10% 0%, rgba(99,102,241,.25), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(16,185,129,.18), transparent 55%),
+        radial-gradient(900px 550px at 60% 95%, rgba(236,72,153,.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+
+    /* ====== Layout ====== */
+    .app{
+      max-width:1200px;
+      margin:18px auto;
+      padding:14px;
+      display:grid;
+      gap:14px;
+      grid-template-columns: 420px 1fr;
+      align-items:start;
+    }
+    @media (max-width: 1020px){
+      .app{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    /* Sticky panel on desktop */
+    .controls{
+      position: sticky;
+      top: 14px;
+      align-self:start;
+      height: calc(100vh - 28px);
+      overflow:auto;
+      scrollbar-width: thin;
+    }
+    @media (max-width: 1020px){
+      .controls{
+        position: static;
+        height:auto;
+        overflow:visible;
+      }
+    }
+
+    .cardHeader{
+      padding:14px 16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      border-bottom:1px solid var(--line);
+      background: rgba(0,0,0,.10);
+    }
+    .brand{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      min-width:0;
+    }
+    .dot{
+      width:12px;height:12px;border-radius:999px;
+      background: linear-gradient(135deg, #a78bfa, #34d399);
+      box-shadow: 0 0 0 6px rgba(167,139,250,.12);
+      flex:0 0 auto;
+    }
+    .brand h1{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* Tabs: no messy wrapping */
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:nowrap;
+      overflow:auto;
+      scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+    .tab.active{ background: rgba(255,255,255,.14); }
+
+    .cardBody{ padding:14px; }
+
+    /* ====== Form alignment ====== */
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin:12px 0 6px;
+    }
+    input, textarea, select{
+      width:100%;
+      padding:11px 12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.14);
+      color:var(--text);
+      border-radius:12px;
+      outline:none;
+      font-size:14px;
+      line-height:1.3;
+    }
+    select{ height:42px; }
+    textarea{ min-height:86px; resize:vertical; }
+    input{ height:42px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 560px){
+      .grid2{ grid-template-columns: 1fr; }
+    }
+
+    .rowBtns{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+    @media (max-width: 560px){
+      .rowBtns{ grid-template-columns: 1fr; }
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.08);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius:12px;
+      font-weight:900;
+      font-size:13px;
+      cursor:pointer;
+      text-align:center;
+    }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(99,102,241,.85), rgba(34,197,94,.70));
+      border-color: transparent;
+    }
+    .btn.danger{
+      background: rgba(239,68,68,.18);
+      border-color: rgba(239,68,68,.35);
+    }
+    .btn.ghost{
+      background: rgba(0,0,0,.14);
+    }
+
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    /* ====== Saved list alignment ====== */
+    .searchRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .searchRow input{ flex:1 1 240px; }
+
+    .list{ display:grid; gap:10px; }
+    .item{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      border-radius:14px;
+      padding:12px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:12px;
+      align-items:start;
+    }
+    @media (max-width: 560px){
+      .item{ grid-template-columns: 1fr; }
+    }
+    .item h3{ margin:0 0 4px; font-size:13px; letter-spacing:.2px; }
+    .item .meta{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+      white-space:pre-wrap;
+    }
+    .itemActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    @media (max-width: 560px){
+      .itemActions{ justify-content:flex-start; }
+      .itemActions .btn{ width:100%; }
+    }
+
+    /* ====== Items editor ====== */
+    .itemsEditor{
+      margin-top:12px;
+      display:grid;
+      gap:10px;
+    }
+    .itemEdit{
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.12);
+      border-radius:14px;
+      padding:12px;
+      display:grid;
+      gap:10px;
+    }
+    .itemEditTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .itemEditTop .t{
+      font-weight:900;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .itemEditGrid{
+      display:grid;
+      grid-template-columns: 1fr 130px;
+      gap:10px;
+    }
+    @media (max-width: 560px){
+      .itemEditGrid{ grid-template-columns: 1fr; }
+    }
+    .tinyBtn{
+      padding:9px 10px;
+      border-radius:12px;
+      font-weight:900;
+      font-size:12px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      cursor:pointer;
+    }
+    .tinyBtn.danger{
+      background: rgba(239,68,68,.16);
+      border-color: rgba(239,68,68,.35);
+    }
+
+    /* ====== Preview alignment + mobile scaling ====== */
+    .previewShell{ padding:14px; }
+    .previewTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .previewTop .title{ font-size:13px; font-weight:900; }
+    .previewTop .sub{ font-size:12px; color:var(--muted); }
+
+    .a4Wrap{
+      display:flex;
+      justify-content:center;
+      padding:12px;
+      border-radius:14px;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+
+    .invoiceA4{
+      width:210mm;
+      min-height:297mm;
+      background:var(--paper);
+      color:var(--ink);
+      border-radius:12px;
+      overflow:hidden;
+      border:1px solid #e5e7eb;
+      transform-origin: top center;
+    }
+
+    @media (max-width: 1020px){
+      .invoiceA4{ transform: scale(0.80); }
+      .a4Wrap{ padding:10px; }
+    }
+    @media (max-width: 560px){
+      .invoiceA4{ transform: scale(0.62); }
+      .a4Wrap{ padding:8px; }
+    }
+
+    .invoiceInner{ padding:14mm 14mm 12mm; }
+
+    .header{
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap:8mm;
+      align-items:start;
+      padding-bottom:8mm;
+      border-bottom:2px solid var(--ink);
+    }
+    .leftInfo .companyName{ margin:0; font-size:18px; font-weight:900; }
+    .leftInfo .companyAddr{ margin-top:6px; font-size:11px; color:#1f2937; white-space:pre-wrap; line-height:1.45; }
+    .centerLogo{ display:flex; justify-content:center; }
+    .logoImg{ max-width:55mm; max-height:22mm; object-fit:contain; display:block; }
+    .rightInv{ text-align:right; min-width:60mm; }
+    .invoiceTitle{ margin:0; font-size:18px; font-weight:900; letter-spacing:.7px; }
+    .regNo{ margin-top:6px; font-size:11px; color:#1f2937; white-space:pre-wrap; line-height:1.35; }
+
+    .metaGrid{
+      margin-top:7mm;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:3mm 10mm;
+      font-size:12px;
+    }
+    .metaRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:6px 0;
+      border-bottom:1px dashed #d1d5db;
+    }
+    .metaRow .k{ font-weight:800; color:#111827; }
+    .metaRow .v{ font-weight:600; color:#111827; text-align:right; white-space:pre-wrap; }
+
+    .blocks{
+      margin-top:7mm;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:6mm;
+    }
+    .box{
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:10px 12px;
+      min-height:26mm;
+    }
+    .box h3{ margin:0 0 6px; font-size:12px; color:#111827; }
+    .box p{ margin:0; font-size:12px; color:#111827; white-space:pre-wrap; line-height:1.45; }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:7mm;
+      font-size:12px;
+      color:#111827;
+    }
+    th, td{ border:1px solid #d1d5db; padding:8px 9px; vertical-align:top; }
+    th{ background:#f9fafb; font-size:11px; color:#111827; }
+    th.sl, td.sl{ width:16mm; text-align:center; }
+    th.amt, td.amt{ width:34mm; text-align:right; white-space:nowrap; }
+    td.desc{ white-space:pre-wrap; }
+
+    .totals{
+      margin-top:7mm;
+      display:grid;
+      grid-template-columns: 1fr 64mm;
+      gap:6mm;
+      align-items:start;
+    }
+    .notes{
+      font-size:11px;
+      color:#111827;
+      line-height:1.5;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:10px 12px;
+      min-height:26mm;
+    }
+    .notes .t{ font-weight:900; margin-bottom:6px; }
+
+    .sum{
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      overflow:hidden;
+      color:#111827;
+    }
+    .sumRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:9px 10px;
+      border-bottom:1px solid #d1d5db;
+      font-size:12px;
+      background:#fff;
+    }
+    .sumRow.total{
+      background:#111827;
+      color:#fff;
+      font-weight:900;
+      border-bottom:0;
+    }
+    .sumRow:last-child{ border-bottom:0; }
+
+    /* ✅ Space between TOTAL and SIGNATURE (keep as you want) */
+    .footer{
+      margin-top:55mm;
+      display:flex;
+      justify-content:space-between;
+      gap:8mm;
+      align-items:flex-end;
+    }
+    .footer .small{
+      font-size:10.5px;
+      color:#111827;
+      line-height:1.45;
+      max-width:105mm;
+    }
+    .signBox{ width:70mm; text-align:center; color:#111827; }
+    .sigImg{ max-width:65mm; max-height:18mm; object-fit:contain; display:block; margin:0 auto 4px; }
+    .signLine{ border-top:1.5px solid #111827; padding-top:7px; font-size:11px; font-weight:900; }
+    .signMeta{ margin-top:6px; font-size:10.5px; white-space:pre-wrap; }
+
+    .afterSign{
+      margin-top:7mm;
+      border-top:1px solid #d1d5db;
+      padding-top:6mm;
+      display:grid;
+      gap:4mm;
+    }
+    .afterSign .about{
+      font-size:10.8px;
+      color:#111827;
+      line-height:1.5;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:9px 10px;
+      background:#fff;
+    }
+    .afterSign .contactFooter{
+      font-size:10.8px;
+      color:#111827;
+      line-height:1.5;
+      display:flex;
+      justify-content:space-between;
+      gap:10mm;
+      flex-wrap:wrap;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:9px 10px;
+      background:#f9fafb;
+    }
+    .afterSign .contactFooter .col{ min-width:70mm; white-space:pre-wrap; }
+
+    @media print{
+      body{ background:#fff; }
+      .app{ display:block; padding:0; margin:0; }
+      .controls{ display:none !important; }
+      .card{ box-shadow:none; border:0; }
+      .previewTop{ display:none !important; }
+      .a4Wrap{ padding:0; background:none; border:0; }
+      .invoiceA4{ border:0; border-radius:0; transform:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- LEFT: Controls -->
+    <div class="card controls">
+      <div class="cardHeader">
+        <div class="brand">
+          <div class="dot"></div>
+          <h1>Invoice Studio</h1>
+        </div>
+        <div class="tabs">
+          <div class="tab active" data-tab="create" onclick="switchTab('create')">Create</div>
+          <div class="tab" data-tab="saved" onclick="switchTab('saved')">Saved</div>
+          <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
+        </div>
+      </div>
+
+      <div class="cardBody">
+
+        <!-- CREATE TAB -->
+        <div id="tab-create">
+          <div class="pill">Neat layout • Mobile friendly • Save & PDF</div>
+
+          <label>Invoice No</label>
+          <input id="inInvNo" value="RS-75300"/>
+
+          <div class="grid2">
+            <div>
+              <label>Date</label>
+              <input id="inDate" value="DD-MM-YYYY"/>
+            </div>
+            <div>
+              <label>Contract</label>
+              <input id="inContract" value="0 Months"/>
+            </div>
+            <div>
+              <label>Mobile</label>
+              <input id="inMobile" value="0000000000"/>
+            </div>
+            <div>
+              <label>Registration Fee</label>
+              <input id="inRegFee" type="number" min="0" value="5000"/>
+            </div>
+            <div>
+              <label>Paid Fee</label>
+              <input id="inPaidFee" type="number" min="0" value="0"/>
+            </div>
+
+            <!-- ✅ NEW: Quick edit Service Amount (Item #1 Amount) -->
+            <div>
+              <label>Service Amount</label>
+              <input id="inServiceAmt" type="number" min="0" value="20000"/>
+            </div>
+
+            <div style="grid-column:1 / -1;">
+              <label>Type of Work</label>
+              <select id="inWorkType">
+                <!-- ✅ labels are simple work names -->
+                <option value="homecare_basic">Home Care</option>
+                <option value="homecare_elder">Elder Care</option>
+                <option value="homecare_patient">Patient Care</option>
+
+                <option value="nursing_general">Nursing</option>
+                <option value="nursing_postop">Post-Op Nursing</option>
+                <option value="nursing_wound">Wound Dressing</option>
+
+                <!-- ✅ NEW options -->
+                <option value="baby_sitting">Baby Sitting</option>
+                <option value="child_care">Child Care</option>
+                <option value="cooking">Cooking</option>
+                <option value="cleaning">Cleaning</option>
+
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Type of Work Summary (Editable)</label>
+          <textarea id="inWorkSummary"></textarea>
+
+          <label>Service Summary (Editable)</label>
+          <textarea id="inServiceSummary"></textarea>
+
+          <div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+            <button class="btn" onclick="applyWorkTemplate(true)">Apply Type of Work</button>
+            <button class="btn ghost" onclick="matchItem1ToWork()">Match Item #1 Description</button>
+          </div>
+
+          <label>Customer Name</label>
+          <input id="inName" value="Client name"/>
+
+          <label>Customer Address (Bill To)</label>
+          <textarea id="inAddr">Client address</textarea>
+
+          <label>Notes</label>
+          <textarea id="inNotes">We sincerely thank you for choosing RS Home Care Madurai.
+It is our privilege to support you and your family with reliable, compassionate, and professional home care services.
+Your comfort, safety, and well-being are always our highest priority,
+and we are committed to providing care with dignity, respect, and kindness.</textarea>
+
+          <label>Invoice Items (Editable)</label>
+          <div class="itemsEditor" id="itemsEditor"></div>
+
+          <div class="rowBtns">
+            <button class="btn" onclick="addRow()">+ Add Item</button>
+            <button class="btn danger" onclick="removeLastRow()">− Remove</button>
+            <button class="btn ghost" onclick="window.print()">Print</button>
+          </div>
+
+          <div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+            <button class="btn primary" onclick="saveInvoice()">Save Invoice</button>
+            <button class="btn" onclick="downloadPDFCurrent()">Download PDF</button>
+          </div>
+        </div>
+
+        <!-- SAVED TAB -->
+        <div id="tab-saved" style="display:none;">
+          <div class="searchRow">
+            <input id="searchSaved" placeholder="Search by invoice no / name / date..." oninput="renderSavedList()"/>
+            <div class="pill" id="savedCount">0 saved</div>
+          </div>
+          <div class="list" id="savedList"></div>
+          <div class="rowBtns" style="grid-template-columns:1fr;">
+            <button class="btn danger" onclick="clearAllSaved()">Delete All Saved</button>
+          </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="tab-settings" style="display:none;">
+          <div class="pill">Common logo + signature for all invoices</div>
+
+          <label>Company Name (Common)</label>
+          <input id="setCompany" value="RS HOME CARE MADURAI"/>
+
+          <label>Company Address (Common)</label>
+          <textarea id="setCompanyAddr">2-3, 22/2 3rd street, Koodal Naga, Madurai – 625 018.
+Cell: +91 7550052799
+Email: rshomecaremaduraiofficial@gmail.com</textarea>
+
+          <div class="grid2">
+            <div>
+              <label>Registration / Business No</label>
+              <input id="setUdyam" value="UDYAM-TN-23-0063274"/>
+            </div>
+            <div>
+              <label>Designation</label>
+              <input id="setManagerTitle" value="Authorized Signatory"/>
+            </div>
+          </div>
+
+          <label>Management Name</label>
+          <input id="setManagerName" value="Owners of the Management"/>
+
+          <label>Company Note (Shown after Signature)</label>
+          <textarea id="setAbout">RS Home Care Madurai provides reliable home-based care and nursing support with trained staff, on-time service, and a focus on patient comfort, safety, and dignity.</textarea>
+
+          <label>Footer Contact Details (Shown at bottom of invoice)</label>
+          <textarea id="setFooterContacts">RS HOME CARE MADURAI
+Cell: +91 7550052799
+Email: rshomecaremaduraiofficial@gmail.com
+Address: 2-3, 22/2 3rd street, Koodal Naga, Madurai – 625 018.</textarea>
+
+          <div class="grid2">
+            <div>
+              <label>Upload Logo (Common)</label>
+              <input id="setLogo" type="file" accept="image/*"/>
+            </div>
+            <div>
+              <label>Upload Signature (Common)</label>
+              <input id="setSig" type="file" accept="image/*"/>
+            </div>
+          </div>
+
+          <div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+            <button class="btn primary" onclick="saveSettings()">Save Settings</button>
+            <button class="btn danger" onclick="resetSettings()">Reset Settings</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Preview -->
+    <div class="card previewShell">
+      <div class="previewTop">
+        <div>
+          <div class="title">Preview (A4) — aligns on desktop & mobile</div>
+          <div class="sub" id="previewSub">Create invoice → Save or Download PDF</div>
+        </div>
+        <div class="pill" id="liveTotals">TOTAL: ₹ 0 • BAL: ₹ 0</div>
+      </div>
+
+      <div class="a4Wrap">
+        <div class="invoiceA4" id="invoiceArea">
+          <div class="invoiceInner">
+
+            <div class="header">
+              <div class="leftInfo">
+                <div class="companyName" id="pCompany">—</div>
+                <div class="companyAddr" id="pCompanyAddr">—</div>
+              </div>
+
+              <div class="centerLogo">
+                <img id="pLogoImg" class="logoImg" alt="Logo"/>
+              </div>
+
+              <div class="rightInv">
+                <p class="invoiceTitle">INVOICE</p>
+                <div class="regNo" id="pUdyam">—</div>
+              </div>
+            </div>
+
+            <div class="metaGrid">
+              <div class="metaRow"><span class="k">NAME:</span><span class="v" id="pName"></span></div>
+              <div class="metaRow"><span class="k">DATE:</span><span class="v" id="pDate"></span></div>
+              <div class="metaRow"><span class="k">ADDRESS:</span><span class="v" id="pAddrOne"></span></div>
+              <div class="metaRow"><span class="k">INVOICE NO:</span><span class="v" id="pInvNo"></span></div>
+              <div class="metaRow"><span class="k">MOBILE:</span><span class="v" id="pMobile"></span></div>
+              <div class="metaRow"><span class="k">CONTRACT:</span><span class="v" id="pContract"></span></div>
+            </div>
+
+            <div class="blocks">
+              <div class="box">
+                <h3>BILL TO</h3>
+                <p id="pBillTo"></p>
+              </div>
+
+              <div class="box">
+                <h3>Type of Work</h3>
+                <p id="pWorkSummary"></p>
+              </div>
+
+              <div class="box" style="grid-column: 1 / -1;">
+                <h3>Service Summary</h3>
+                <p id="pServiceSummary"></p>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th class="sl">SL.NO</th>
+                  <th>DESCRIPTION</th>
+                  <th class="amt">AMOUNT</th>
+                </tr>
+              </thead>
+              <tbody id="pItemsBody"></tbody>
+            </table>
+
+            <div class="totals">
+              <div class="notes">
+                <div class="t">Notes</div>
+                <div id="pNotes"></div>
+              </div>
+
+              <div class="sum">
+                <div class="sumRow"><span>REGISTRATION FEE</span><strong id="pRegFee">₹ 0</strong></div>
+                <div class="sumRow"><span>PAID FEE</span><strong id="pPaidFee">₹ 0</strong></div>
+                <div class="sumRow"><span>BALANCE AMOUNT</span><strong id="pBalance">₹ 0</strong></div>
+                <div class="sumRow total"><span>TOTAL</span><strong id="pTotal">₹ 0</strong></div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <div class="small">
+                This invoice is generated digitally. Please verify invoice number and details before payment.
+              </div>
+              <div class="signBox">
+                <img id="pSigImg" class="sigImg" alt="Signature"/>
+                <div class="signLine" id="pManagerLine">Management Signature</div>
+                <div class="signMeta" id="pManagerMeta"></div>
+              </div>
+            </div>
+
+            <div class="afterSign">
+              <div class="about" id="pAbout">—</div>
+              <div class="contactFooter">
+                <div class="col" id="pFooterContactsLeft">—</div>
+                <div class="col" id="pFooterContactsRight">—</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  const KEY_SETTINGS = "inv_settings_v3";
+  const KEY_INVOICES  = "inv_saved_v3";
+
+  // ✅ Templates (added: baby_sitting, child_care, cooking, cleaning)
+  const WORK_TEMPLATES = {
+    homecare_basic: {
+      workSummary:
+        "Home care support for daily living activities with respectful and professional service.",
+      serviceSummary:
+        "Home care services include assistance with routine activities, comfort support, and safe supervision by trained staff."
+    },
+    homecare_elder: {
+      workSummary:
+        "Elder care support focused on dignity, comfort, and routine assistance at home.",
+      serviceSummary:
+        "Elder care services include daily assistance, basic monitoring support, and companionship to maintain comfort and well-being."
+    },
+    homecare_patient: {
+      workSummary:
+        "Patient care support at home with assistance for daily needs and recovery comfort.",
+      serviceSummary:
+        "Patient care services include routine assistance, hygiene support, mobility help, and supervised care to support recovery and comfort."
+    },
+    nursing_general: {
+      workSummary:
+        "Nursing care support at home under hygienic standards and professional supervision.",
+      serviceSummary:
+        "Home nursing support may include basic monitoring, prescribed care assistance, and attentive supervision focusing on patient safety."
+    },
+    nursing_postop: {
+      workSummary:
+        "Post-operative nursing support at home with recovery monitoring and care assistance.",
+      serviceSummary:
+        "Post-operative services include recovery support, routine monitoring, and care assistance as advised to promote safe healing."
+    },
+    nursing_wound: {
+      workSummary:
+        "Wound dressing support at home with hygienic care as per doctor’s advice.",
+      serviceSummary:
+        "Wound care services include dressing support, cleanliness protocols, and careful monitoring with safety and hygiene priority."
+    },
+
+    /* ✅ NEW list items */
+    baby_sitting: {
+      workSummary:
+        "Baby sitting service with safe supervision, attentive care, and basic support as required.",
+      serviceSummary:
+        "Baby sitting services include attentive supervision, feeding support (as instructed), hygiene assistance, and safe engagement for the child’s comfort and well-being."
+    },
+    child_care: {
+      workSummary:
+        "Child care service with responsible supervision and support for daily routines.",
+      serviceSummary:
+        "Child care services include safe supervision, routine support, hygiene assistance, and engaging activities to support the child’s comfort and well-being."
+    },
+    cooking: {
+      workSummary:
+        "Cooking service for home needs with clean preparation and timely support.",
+      serviceSummary:
+        "Cooking services include meal preparation, kitchen cleanliness during work, and support for dietary preferences as instructed by the family."
+    },
+    cleaning: {
+      workSummary:
+        "Cleaning service for home maintenance with neat and hygienic work.",
+      serviceSummary:
+        "Cleaning services include regular home cleaning, basic sanitization, and maintaining a tidy environment with care and responsibility."
+    },
+
+    custom: { workSummary: "", serviceSummary: "" }
+  };
+
+  let items = [
+    { desc: "Professional care service by RS Home Care Madurai.", amt: 20000 }
+  ];
+
+  let settings = {
+    company: "RS HOME CARE MADURAI",
+    companyAddr: `2-3, 22/2 3rd street, Koodal Naga, Madurai – 625 018.
+Cell: +91 7550052799
+Email: rshomecaremaduraiofficial@gmail.com`,
+    udyam: "UDYAM-TN-23-0063274",
+    managerName: "Owners of the Management",
+    managerTitle: "Authorized Signatory",
+    logoDataUrl: "",
+    sigDataUrl: "",
+    about: "RS Home Care Madurai provides reliable home-based care and nursing support with trained staff, on-time service, and a focus on patient comfort, safety, and dignity.",
+    footerContacts: `RS HOME CARE MADURAI
+Cell: +91 7550052799
+Email: rshomecaremaduraiofficial@gmail.com
+Address: 2-3, 22/2 3rd street, Koodal Naga, Madurai – 625 018.`
+  };
+
+  function money(n){
+    const num = Number(n || 0);
+    return "₹ " + num.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+  }
+  function safeText(s){ return (s ?? "").toString().trim(); }
+
+  function splitFooterContacts(text){
+    const lines = safeText(text).split("\n").map(x=>x.trim()).filter(Boolean);
+    if(lines.length <= 3) return { left: safeText(text), right: "" };
+    const mid = Math.ceil(lines.length / 2);
+    return { left: lines.slice(0, mid).join("\n"), right: lines.slice(mid).join("\n") };
+  }
+
+  function switchTab(name){
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector(`.tab[data-tab="${name}"]`)?.classList.add("active");
+
+    document.getElementById("tab-create").style.display = name === "create" ? "block" : "none";
+    document.getElementById("tab-saved").style.display  = name === "saved"  ? "block" : "none";
+    document.getElementById("tab-settings").style.display = name === "settings" ? "block" : "none";
+
+    if(name === "saved") renderSavedList();
+    document.getElementById("previewSub").textContent =
+      name === "settings"
+        ? "Settings apply to all invoices (logo/signature/company)"
+        : "Create invoice → Save or Download PDF";
+  }
+
+  function addRow(){ items.push({ desc:"", amt:0 }); renderItemsEditor(); syncServiceAmountUI(); applyToPreview(); }
+  function removeLastRow(){ if(items.length<=1) return; items.pop(); renderItemsEditor(); syncServiceAmountUI(); applyToPreview(); }
+
+  function deleteRow(i){
+    if(items.length<=1) return;
+    items.splice(i, 1);
+    renderItemsEditor();
+    syncServiceAmountUI();
+    applyToPreview();
+  }
+
+  function renderItemsEditor(){
+    const wrap = document.getElementById("itemsEditor");
+    wrap.innerHTML = "";
+    items.forEach((it, idx) => {
+      const box = document.createElement("div");
+      box.className = "itemEdit";
+
+      const top = document.createElement("div");
+      top.className = "itemEditTop";
+
+      const t = document.createElement("div");
+      t.className = "t";
+      t.textContent = `Item #${idx+1}`;
+
+      const del = document.createElement("button");
+      del.className = "tinyBtn danger";
+      del.textContent = "Remove Item";
+      del.onclick = () => deleteRow(idx);
+
+      top.appendChild(t);
+      top.appendChild(del);
+
+      const grid = document.createElement("div");
+      grid.className = "itemEditGrid";
+
+      const desc = document.createElement("textarea");
+      desc.placeholder = "Description";
+      desc.value = it.desc ?? "";
+      desc.oninput = (e) => { items[idx].desc = e.target.value; applyToPreview(); };
+
+      const amt = document.createElement("input");
+      amt.type = "number";
+      amt.min = "0";
+      amt.placeholder = "Amount";
+      amt.value = Number(it.amt || 0);
+      amt.oninput = (e) => {
+        items[idx].amt = Number(e.target.value || 0);
+        if(idx === 0) syncServiceAmountUI();
+        applyToPreview();
+      };
+
+      grid.appendChild(desc);
+      grid.appendChild(amt);
+
+      box.appendChild(top);
+      box.appendChild(grid);
+      wrap.appendChild(box);
+    });
+  }
+
+  function renderItems(){
+    const tbody = document.getElementById("pItemsBody");
+    tbody.innerHTML = "";
+    items.forEach((it, idx) => {
+      const tr = document.createElement("tr");
+
+      const tdSl = document.createElement("td");
+      tdSl.className = "sl";
+      tdSl.textContent = String(idx + 1);
+
+      const tdDesc = document.createElement("td");
+      tdDesc.className = "desc";
+      tdDesc.textContent = it.desc || "—";
+
+      const tdAmt = document.createElement("td");
+      tdAmt.className = "amt";
+      tdAmt.textContent = money(it.amt || 0);
+
+      tr.appendChild(tdSl);
+      tr.appendChild(tdDesc);
+      tr.appendChild(tdAmt);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function calcTotals(){
+    const total = items.reduce((s, it) => s + Number(it.amt || 0), 0);
+    const regFee = Number(document.getElementById("inRegFee").value || 0);
+    const paidFee = Number(document.getElementById("inPaidFee").value || 0);
+    const balance = Math.max(0, total - regFee - paidFee);
+    return { total, regFee, paidFee, balance };
+  }
+
+  // ✅ Auto-fill Work Summary + Service Summary + Item #1 Description
+  function applyWorkTemplate(autoFillItem1){
+    const type = document.getElementById("inWorkType").value;
+    const tpl = WORK_TEMPLATES[type] || WORK_TEMPLATES.custom;
+
+    document.getElementById("inWorkSummary").value = tpl.workSummary || "";
+    document.getElementById("inServiceSummary").value = tpl.serviceSummary || "";
+
+    if(autoFillItem1){
+      if(!items.length) items = [{ desc:"", amt:0 }];
+      items[0].desc = tpl.workSummary || tpl.serviceSummary || "";
+      renderItemsEditor();
+      syncServiceAmountUI();
+    }
+    applyToPreview();
+  }
+
+  function matchItem1ToWork(){
+    const w = safeText(document.getElementById("inWorkSummary").value);
+    const s = safeText(document.getElementById("inServiceSummary").value);
+    if(!items.length) items = [{ desc:"", amt:0 }];
+    items[0].desc = w || s;
+    renderItemsEditor();
+    syncServiceAmountUI();
+    applyToPreview();
+  }
+
+  // ✅ NEW: Quick edit service amount -> updates Item #1 amount
+  function syncServiceAmountUI(){
+    const el = document.getElementById("inServiceAmt");
+    if(!el) return;
+    if(!items.length) items = [{ desc:"", amt:0 }];
+    el.value = Number(items[0].amt || 0);
+  }
+
+  function applyToPreview(){
+    // Settings
+    document.getElementById("pCompany").textContent = settings.company || "—";
+    document.getElementById("pCompanyAddr").textContent = settings.companyAddr || "—";
+    document.getElementById("pUdyam").textContent = settings.udyam ? ("Registration No: " + settings.udyam) : "—";
+
+    document.getElementById("pLogoImg").src = settings.logoDataUrl || "";
+    document.getElementById("pSigImg").src = settings.sigDataUrl || "";
+
+    document.getElementById("pManagerLine").textContent = (settings.managerName || "Management") + " Signature";
+    document.getElementById("pManagerMeta").textContent = settings.managerTitle || "";
+
+    // Form fields
+    document.getElementById("pInvNo").textContent = safeText(document.getElementById("inInvNo").value) || "—";
+    document.getElementById("pDate").textContent = safeText(document.getElementById("inDate").value) || "—";
+    document.getElementById("pContract").textContent = safeText(document.getElementById("inContract").value) || "—";
+    document.getElementById("pMobile").textContent = safeText(document.getElementById("inMobile").value) || "—";
+    document.getElementById("pName").textContent = safeText(document.getElementById("inName").value) || "—";
+
+    const addr = safeText(document.getElementById("inAddr").value);
+    document.getElementById("pAddrOne").textContent = (addr.split("\n")[0] || "").trim() || "—";
+    document.getElementById("pBillTo").textContent = addr || "—";
+
+    document.getElementById("pNotes").textContent = safeText(document.getElementById("inNotes").value) || "—";
+    document.getElementById("pWorkSummary").textContent = safeText(document.getElementById("inWorkSummary").value) || "—";
+    document.getElementById("pServiceSummary").textContent = safeText(document.getElementById("inServiceSummary").value) || "—";
+
+    renderItems();
+
+    const { total, regFee, paidFee, balance } = calcTotals();
+    document.getElementById("pRegFee").textContent = money(regFee);
+    document.getElementById("pPaidFee").textContent = money(paidFee);
+    document.getElementById("pBalance").textContent = money(balance);
+    document.getElementById("pTotal").textContent = money(total);
+    document.getElementById("liveTotals").textContent = `TOTAL: ${money(total)} • BAL: ${money(balance)}`;
+
+    // After signature
+    document.getElementById("pAbout").textContent = settings.about || "—";
+    const parts = splitFooterContacts(settings.footerContacts || "");
+    document.getElementById("pFooterContactsLeft").textContent = parts.left || "—";
+    document.getElementById("pFooterContactsRight").textContent = parts.right || "";
+  }
+
+  async function fileToDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function loadSettings(){
+    const raw = localStorage.getItem(KEY_SETTINGS);
+    if(raw){
+      try{ settings = { ...settings, ...JSON.parse(raw) }; }catch{}
+    }
+    document.getElementById("setCompany").value = settings.company;
+    document.getElementById("setCompanyAddr").value = settings.companyAddr;
+    document.getElementById("setUdyam").value = settings.udyam;
+    document.getElementById("setManagerName").value = settings.managerName;
+    document.getElementById("setManagerTitle").value = settings.managerTitle;
+    document.getElementById("setAbout").value = settings.about || "";
+    document.getElementById("setFooterContacts").value = settings.footerContacts || "";
+  }
+
+  document.getElementById("setLogo").addEventListener("change", async (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    settings.logoDataUrl = await fileToDataUrl(f);
+    saveSettings(false);
+  });
+  document.getElementById("setSig").addEventListener("change", async (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    settings.sigDataUrl = await fileToDataUrl(f);
+    saveSettings(false);
+  });
+
+  function saveSettings(showAlert=true){
+    settings.company = safeText(document.getElementById("setCompany").value);
+    settings.companyAddr = safeText(document.getElementById("setCompanyAddr").value);
+    settings.udyam = safeText(document.getElementById("setUdyam").value);
+    settings.managerName = safeText(document.getElementById("setManagerName").value);
+    settings.managerTitle = safeText(document.getElementById("setManagerTitle").value);
+    settings.about = safeText(document.getElementById("setAbout").value);
+    settings.footerContacts = safeText(document.getElementById("setFooterContacts").value);
+
+    localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
+    applyToPreview();
+    if(showAlert) alert("Settings saved.");
+  }
+
+  function resetSettings(){
+    localStorage.removeItem(KEY_SETTINGS);
+    location.reload();
+  }
+
+  function nowId(){
+    return "inv_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+  }
+
+  function getSavedInvoices(){
+    const raw = localStorage.getItem(KEY_INVOICES);
+    if(!raw) return [];
+    try{
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    }catch{ return []; }
+  }
+  function setSavedInvoices(list){
+    localStorage.setItem(KEY_INVOICES, JSON.stringify(list));
+  }
+
+  function saveInvoice(){
+    const invNo = safeText(document.getElementById("inInvNo").value);
+    if(!invNo){ alert("Please enter Invoice No before saving."); return; }
+
+    const { total, regFee, paidFee, balance } = calcTotals();
+
+    const data = {
+      id: nowId(),
+      createdAt: new Date().toISOString(),
+      invNo,
+      date: safeText(document.getElementById("inDate").value),
+      contract: safeText(document.getElementById("inContract").value),
+      mobile: safeText(document.getElementById("inMobile").value),
+      name: safeText(document.getElementById("inName").value),
+      addr: safeText(document.getElementById("inAddr").value),
+      notes: safeText(document.getElementById("inNotes").value),
+      workType: safeText(document.getElementById("inWorkType").value),
+      workSummary: safeText(document.getElementById("inWorkSummary").value),
+      serviceSummary: safeText(document.getElementById("inServiceSummary").value),
+      regFee, paidFee, total, balance,
+      items: JSON.parse(JSON.stringify(items)),
+      settingsSnapshot: JSON.parse(JSON.stringify(settings))
+    };
+
+    const list = getSavedInvoices();
+    list.unshift(data);
+    setSavedInvoices(list);
+    alert("Invoice saved!");
+    renderSavedList();
+  }
+
+  function loadInvoice(id){
+    const list = getSavedInvoices();
+    const inv = list.find(x => x.id === id);
+    if(!inv) return;
+
+    document.getElementById("inInvNo").value = inv.invNo || "";
+    document.getElementById("inDate").value = inv.date || "";
+    document.getElementById("inContract").value = inv.contract || "";
+    document.getElementById("inMobile").value = inv.mobile || "";
+    document.getElementById("inRegFee").value = inv.regFee ?? 0;
+    document.getElementById("inPaidFee").value = inv.paidFee ?? 0;
+
+    document.getElementById("inWorkType").value = inv.workType || "custom";
+    document.getElementById("inWorkSummary").value = inv.workSummary || "";
+    document.getElementById("inServiceSummary").value = inv.serviceSummary || "";
+
+    document.getElementById("inName").value = inv.name || "";
+    document.getElementById("inAddr").value = inv.addr || "";
+    document.getElementById("inNotes").value = inv.notes || "";
+
+    items = Array.isArray(inv.items) && inv.items.length ? inv.items : [{desc:"", amt:0}];
+    renderItemsEditor();
+    syncServiceAmountUI();
+
+    if(inv.settingsSnapshot){
+      settings = { ...settings, ...inv.settingsSnapshot };
+      localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
+      loadSettings();
+    }
+
+    applyToPreview();
+    switchTab("create");
+  }
+
+  function deleteInvoice(id){
+    const list = getSavedInvoices().filter(x => x.id !== id);
+    setSavedInvoices(list);
+    renderSavedList();
+  }
+
+  function clearAllSaved(){
+    if(!confirm("Delete ALL saved invoices?")) return;
+    localStorage.removeItem(KEY_INVOICES);
+    renderSavedList();
+  }
+
+  function renderSavedList(){
+    const q = safeText(document.getElementById("searchSaved")?.value).toLowerCase();
+    const list = getSavedInvoices();
+    document.getElementById("savedCount").textContent = `${list.length} saved`;
+
+    const filtered = list.filter(inv => {
+      const s = `${inv.invNo} ${inv.name} ${inv.date}`.toLowerCase();
+      return !q || s.includes(q);
+    });
+
+    const el = document.getElementById("savedList");
+    el.innerHTML = "";
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="pill">No saved invoices found.</div>`;
+      return;
+    }
+
+    filtered.forEach(inv => {
+      const d = document.createElement("div");
+      d.className = "item";
+
+      const left = document.createElement("div");
+      const title = document.createElement("h3");
+      title.textContent = `${inv.invNo || "Invoice"} • ${inv.name || "—"}`;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `Date: ${inv.date || "—"}\nTotal: ${money(inv.total || 0)} • Balance: ${money(inv.balance || 0)}`;
+      left.appendChild(title);
+      left.appendChild(meta);
+
+      const right = document.createElement("div");
+      right.className = "itemActions";
+
+      const btnOpen = document.createElement("button");
+      btnOpen.className = "btn";
+      btnOpen.textContent = "Open";
+      btnOpen.onclick = () => loadInvoice(inv.id);
+
+      const btnPdf = document.createElement("button");
+      btnPdf.className = "btn primary";
+      btnPdf.textContent = "PDF";
+      btnPdf.onclick = async () => {
+        loadInvoice(inv.id);
+        await new Promise(r=>setTimeout(r, 120));
+        downloadPDFCurrent();
+      };
+
+      const btnDel = document.createElement("button");
+      btnDel.className = "btn danger";
+      btnDel.textContent = "Delete";
+      btnDel.onclick = () => deleteInvoice(inv.id);
+
+      right.appendChild(btnOpen);
+      right.appendChild(btnPdf);
+      right.appendChild(btnDel);
+
+      d.appendChild(left);
+      d.appendChild(right);
+
+      el.appendChild(d);
+    });
+  }
+
+  async function downloadPDFCurrent(){
+    applyToPreview();
+    await new Promise(r => setTimeout(r, 150));
+
+    const el = document.getElementById("invoiceArea");
+    const canvas = await html2canvas(el, {
+      scale: 2.2,
+      useCORS: true,
+      backgroundColor: "#ffffff"
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+
+    const props = pdf.getImageProperties(imgData);
+    const imgW = pageW;
+    const imgH = (props.height * imgW) / props.width;
+
+    let y = 0;
+    pdf.addImage(imgData, "PNG", 0, y, imgW, imgH);
+
+    let heightLeft = imgH - pageH;
+    while(heightLeft > 0){
+      pdf.addPage();
+      y = -(imgH - heightLeft);
+      pdf.addImage(imgData, "PNG", 0, y, imgW, imgH);
+      heightLeft -= pageH;
+    }
+
+    const invNo = safeText(document.getElementById("inInvNo").value).replace(/[^\w\-#]/g, "");
+    pdf.save(`Invoice${invNo ? "_" + invNo : ""}.pdf`);
+  }
+
+  // ✅ Auto-fill when dropdown changes
+  document.getElementById("inWorkType").addEventListener("change", () => applyWorkTemplate(true));
+
+  // ✅ NEW: quick service amount -> Item #1 amount
+  document.getElementById("inServiceAmt").addEventListener("input", (e) => {
+    if(!items.length) items = [{ desc:"", amt:0 }];
+    items[0].amt = Number(e.target.value || 0);
+    renderItemsEditor();       // keep editor in sync
+    applyToPreview();
+  });
+
+  // Live preview
+  ["inInvNo","inDate","inContract","inMobile","inRegFee","inPaidFee","inName","inAddr","inNotes","inWorkSummary","inServiceSummary"]
+    .forEach(id => document.getElementById(id).addEventListener("input", applyToPreview));
+
+  // Init
+  loadSettings();
+  renderItemsEditor();
+  syncServiceAmountUI();
+
+  // default fill
+  document.getElementById("inWorkType").value = "homecare_basic";
+  applyWorkTemplate(true);
+
+  applyToPreview();
+  renderSavedList();
+</script>
+</body>
+</html>
