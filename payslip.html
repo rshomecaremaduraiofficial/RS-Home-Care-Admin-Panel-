@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RS Home Care — Payslip Studio</title>
+  <link rel="icon" href="logo.png" type="image/png">
+
+  <!-- PDF libs -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
+      --line: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --paper:#fff;
+      --ink:#111827;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --r:16px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 650px at 10% 0%, rgba(99,102,241,.25), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(16,185,129,.18), transparent 55%),
+        radial-gradient(900px 550px at 60% 95%, rgba(236,72,153,.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+
+    /* ====== Layout ====== */
+    .app{
+      max-width:1200px;
+      margin:18px auto;
+      padding:14px;
+      display:grid;
+      gap:14px;
+      grid-template-columns: 420px 1fr;
+      align-items:start;
+    }
+    @media (max-width: 1020px){
+      .app{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    /* Sticky panel on desktop */
+    .controls{
+      position: sticky;
+      top: 14px;
+      align-self:start;
+      height: calc(100vh - 28px);
+      overflow:auto;
+      scrollbar-width: thin;
+    }
+    @media (max-width: 1020px){
+      .controls{
+        position: static;
+        height:auto;
+        overflow:visible;
+      }
+    }
+
+    .cardHeader{
+      padding:14px 16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      border-bottom:1px solid var(--line);
+      background: rgba(0,0,0,.10);
+    }
+    .brand{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      min-width:0;
+    }
+    .dot{
+      width:12px;height:12px;border-radius:999px;
+      background: linear-gradient(135deg, #a78bfa, #34d399);
+      box-shadow: 0 0 0 6px rgba(167,139,250,.12);
+      flex:0 0 auto;
+    }
+    .brand h1{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* Tabs */
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:nowrap;
+      overflow:auto;
+      scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+    .tab.active{ background: rgba(255,255,255,.14); }
+
+    .cardBody{ padding:14px; }
+
+    /* ====== Form ====== */
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin:12px 0 6px;
+    }
+    input, textarea, select{
+      width:100%;
+      padding:11px 12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.14);
+      color:var(--text);
+      border-radius:12px;
+      outline:none;
+      font-size:14px;
+      line-height:1.3;
+    }
+    select{ height:42px; }
+    textarea{ min-height:86px; resize:vertical; }
+    input{ height:42px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 560px){
+      .grid2{ grid-template-columns: 1fr; }
+    }
+
+    .rowBtns{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+    @media (max-width: 560px){
+      .rowBtns{ grid-template-columns: 1fr; }
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.08);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius:12px;
+      font-weight:900;
+      font-size:13px;
+      cursor:pointer;
+      text-align:center;
+    }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(99,102,241,.85), rgba(34,197,94,.70));
+      border-color: transparent;
+    }
+    .btn.danger{
+      background: rgba(239,68,68,.18);
+      border-color: rgba(239,68,68,.35);
+    }
+    .btn.ghost{ background: rgba(0,0,0,.14); }
+
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    /* ====== Saved list ====== */
+    .searchRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .searchRow input{ flex:1 1 240px; }
+
+    .list{ display:grid; gap:10px; }
+    .item{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      border-radius:14px;
+      padding:12px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:12px;
+      align-items:start;
+    }
+    @media (max-width: 560px){
+      .item{ grid-template-columns: 1fr; }
+    }
+    .item h3{ margin:0 0 4px; font-size:13px; letter-spacing:.2px; }
+    .item .meta{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+      white-space:pre-wrap;
+    }
+    .itemActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    @media (max-width: 560px){
+      .itemActions{ justify-content:flex-start; }
+      .itemActions .btn{ width:100%; }
+    }
+
+    /* ====== Preview ====== */
+    .previewShell{ padding:14px; }
+    .previewTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .previewTop .title{ font-size:13px; font-weight:900; }
+    .previewTop .sub{ font-size:12px; color:var(--muted); }
+
+    .a4Wrap{
+      display:flex;
+      justify-content:center;
+      padding:12px;
+      border-radius:14px;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+
+    .slipA4{
+      width:210mm;
+      min-height:297mm;
+      background:var(--paper);
+      color:var(--ink);
+      border-radius:12px;
+      overflow:hidden;
+      border:1px solid #e5e7eb;
+      transform-origin: top center;
+    }
+    @media (max-width: 1020px){
+      .slipA4{ transform: scale(0.80); }
+      .a4Wrap{ padding:10px; }
+    }
+    @media (max-width: 560px){
+      .slipA4{ transform: scale(0.62); }
+      .a4Wrap{ padding:8px; }
+    }
+
+    .slipInner{ padding:14mm 14mm 12mm; }
+
+    /* header */
+    .header{
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap:8mm;
+      align-items:start;
+      padding-bottom:8mm;
+      border-bottom:2px solid var(--ink);
+    }
+    .leftInfo .companyName{ margin:0; font-size:18px; font-weight:900; }
+    .leftInfo .companyAddr{ margin-top:6px; font-size:11px; color:#1f2937; white-space:pre-wrap; line-height:1.45; }
+    .centerLogo{ display:flex; justify-content:center; }
+    .logoImg{ max-width:55mm; max-height:22mm; object-fit:contain; display:block; }
+    .rightInfo{ text-align:right; min-width:60mm; }
+    .slipTitle{ margin:0; font-size:18px; font-weight:900; letter-spacing:.7px; }
+    .regNo{ margin-top:6px; font-size:11px; color:#1f2937; white-space:pre-wrap; line-height:1.35; }
+
+    .metaGrid{
+      margin-top:7mm;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:3mm 10mm;
+      font-size:12px;
+    }
+    .metaRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:6px 0;
+      border-bottom:1px dashed #d1d5db;
+    }
+    .metaRow .k{ font-weight:800; color:#111827; }
+    .metaRow .v{ font-weight:600; color:#111827; text-align:right; white-space:pre-wrap; }
+
+    .blocks{
+      margin-top:7mm;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:6mm;
+    }
+    .box{
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:10px 12px;
+      min-height:26mm;
+    }
+    .box h3{ margin:0 0 6px; font-size:12px; color:#111827; }
+    .box p{ margin:0; font-size:12px; color:#111827; white-space:pre-wrap; line-height:1.45; }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:7mm;
+      font-size:12px;
+      color:#111827;
+    }
+    th, td{ border:1px solid #d1d5db; padding:8px 9px; vertical-align:top; }
+    th{ background:#f9fafb; font-size:11px; color:#111827; }
+    th.sl, td.sl{ width:18mm; text-align:center; }
+    th.amt, td.amt{ width:42mm; text-align:right; white-space:nowrap; }
+    td.desc{ white-space:pre-wrap; }
+
+    /* ✅ FIX: smaller footer margin so content fits A4 */
+    .footer{
+      margin-top:10mm;
+      display:flex;
+      justify-content:space-between;
+      gap:8mm;
+      align-items:flex-end;
+    }
+    .footer .small{
+      font-size:10.5px;
+      color:#111827;
+      line-height:1.45;
+      max-width:105mm;
+    }
+    .signBox{ width:70mm; text-align:center; color:#111827; }
+    .sigImg{ max-width:65mm; max-height:18mm; object-fit:contain; display:block; margin:0 auto 4px; }
+    .signLine{ border-top:1.5px solid #111827; padding-top:7px; font-size:11px; font-weight:900; }
+    .signMeta{ margin-top:6px; font-size:10.5px; white-space:pre-wrap; }
+
+    .bottomThanks{
+      margin-top:7mm;
+      border-top:1px solid #d1d5db;
+      padding-top:6mm;
+      font-size:11px;
+      color:#111827;
+      background:#f9fafb;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:9px 10px;
+      text-align:center;
+      font-weight:800;
+    }
+
+    @media print{
+      body{ background:#fff; }
+      .app{ display:block; padding:0; margin:0; }
+      .controls{ display:none !important; }
+      .card{ box-shadow:none; border:0; }
+      .previewTop{ display:none !important; }
+      .a4Wrap{ padding:0; background:none; border:0; }
+      .slipA4{ border:0; border-radius:0; transform:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- LEFT: Controls -->
+    <div class="card controls">
+      <div class="cardHeader">
+        <div class="brand">
+          <div class="dot"></div>
+          <h1>Payslip Studio</h1>
+        </div>
+        <div class="tabs">
+          <div class="tab active" data-tab="create" onclick="switchTab('create')">Create</div>
+          <div class="tab" data-tab="saved" onclick="switchTab('saved')">Saved</div>
+          <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
+        </div>
+      </div>
+
+      <div class="cardBody">
+
+        <!-- CREATE TAB -->
+        <div id="tab-create">
+          <div class="pill">Auto slip no • Save • PDF • Editable</div>
+
+          <label>Slip No</label>
+          <input id="inSlipNo" value="RS-43520"/>
+
+          <div class="grid2">
+            <div>
+              <label>Payment Month</label>
+              <input id="inPayMonth" type="month"/>
+            </div>
+            <div>
+              <label>Payment Date</label>
+              <input id="inPayDate" type="date"/>
+            </div>
+
+            <div>
+              <label>Employee Name</label>
+              <input id="inEmpName" placeholder="Employee name"/>
+            </div>
+            <div>
+              <label>Access No</label>
+              <input id="inAccessNo" placeholder="Access number"/>
+            </div>
+
+            <div>
+              <label>Phone Number</label>
+              <input id="inPhone" placeholder="Phone number"/>
+            </div>
+            <div>
+              <label>Role</label>
+              <input id="inRole" placeholder="Role / Position"/>
+            </div>
+
+            <div>
+              <label>Payment Method</label>
+              <select id="inMethod">
+                <option value="Online Transfer">Online Transfer</option>
+                <option value="Offline Transfer">Offline Transfer</option>
+              </select>
+            </div>
+            <div>
+              <label>Amount (£)</label>
+              <input id="inAmount" type="number" step="0.01" value="0"/>
+            </div>
+
+            <div style="grid-column:1 / -1;">
+              <label>Short Note (RS Home Care)</label>
+              <textarea id="inShortNote">Thank you for your hard work and dedication.</textarea>
+            </div>
+          </div>
+
+          <div class="rowBtns">
+            <button class="btn" type="button" onclick="newSlip()">New Slip</button>
+            <button class="btn ghost" type="button" onclick="window.print()">Print</button>
+            <button class="btn primary" type="button" onclick="savePayslip()">Save</button>
+          </div>
+
+          <div class="rowBtns" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+            <button class="btn primary" type="button" onclick="downloadPDFCurrent()">Download PDF</button>
+            <button class="btn danger" type="button" onclick="clearForm()">Clear Form</button>
+          </div>
+        </div>
+
+        <!-- SAVED TAB -->
+        <div id="tab-saved" style="display:none;">
+          <div class="searchRow">
+            <input id="searchSaved" placeholder="Search by slip no / employee / month..." oninput="renderSavedList()"/>
+            <div class="pill" id="savedCount">0 saved</div>
+          </div>
+          <div class="list" id="savedList"></div>
+          <div class="rowBtns" style="grid-template-columns:1fr;">
+            <button class="btn danger" onclick="clearAllSaved()">Delete All Saved</button>
+          </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="tab-settings" style="display:none;">
+          <div class="pill">Common company header + signature</div>
+
+          <label>Company Name</label>
+          <input id="setCompany" value="RS HOME CARE"/>
+
+          <label>Company Contact Details</label>
+          <textarea id="setCompanyContact">Cell: +91 7550052799
+Email: rshomecaremaduraiofficial@gmail.com</textarea>
+
+          <div class="grid2">
+            <div>
+              <label>Registration Number</label>
+              <input id="setRegNo" value="UDYAM-TN-23-0063274"/>
+            </div>
+            <div>
+              <label>Owner / Management Name</label>
+              <input id="setOwnerName" value="Owners of the Management"/>
+            </div>
+          </div>
+
+          <label>Owner / Management Title</label>
+          <input id="setOwnerTitle" value="Authorized Signatory"/>
+
+          <div class="grid2">
+            <div>
+              <label>Upload Company Logo</label>
+              <input id="setLogo" type="file" accept="image/*"/>
+            </div>
+            <div>
+              <label>Upload Signature Image</label>
+              <input id="setSig" type="file" accept="image/*"/>
+            </div>
+          </div>
+
+          <div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+            <button class="btn primary" onclick="saveSettings()">Save Settings</button>
+            <button class="btn danger" onclick="resetSettings()">Reset Settings</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Preview -->
+    <div class="card previewShell">
+      <div class="previewTop">
+        <div>
+          <div class="title">Preview (A4)</div>
+          <div class="sub" id="previewSub">Create payslip → Save or Download PDF</div>
+        </div>
+        <div class="pill" id="liveAmount">AMOUNT: £ 0.00</div>
+      </div>
+
+      <div class="a4Wrap">
+        <div class="slipA4" id="slipArea">
+          <div class="slipInner">
+
+            <div class="header">
+              <div class="leftInfo">
+                <div class="companyName" id="pCompany">—</div>
+                <div class="companyAddr" id="pCompanyContact">—</div>
+              </div>
+
+              <div class="centerLogo">
+                <img id="pLogoImg" class="logoImg" alt="Logo"/>
+              </div>
+
+              <div class="rightInfo">
+                <p class="slipTitle">PAYSLIP</p>
+                <div class="regNo" id="pRegNo">—</div>
+              </div>
+            </div>
+
+            <div class="metaGrid">
+              <div class="metaRow"><span class="k">SLIP NO:</span><span class="v" id="pSlipNo">—</span></div>
+              <div class="metaRow"><span class="k">PAY MONTH:</span><span class="v" id="pPayMonth">—</span></div>
+
+              <div class="metaRow"><span class="k">EMPLOYEE:</span><span class="v" id="pEmpName">—</span></div>
+              <div class="metaRow"><span class="k">PAY DATE:</span><span class="v" id="pPayDate">—</span></div>
+
+              <div class="metaRow"><span class="k">ACCESS NO:</span><span class="v" id="pAccessNo">—</span></div>
+              <div class="metaRow"><span class="k">METHOD:</span><span class="v" id="pMethod">—</span></div>
+
+              <div class="metaRow"><span class="k">PHONE:</span><span class="v" id="pPhone">—</span></div>
+              <div class="metaRow"><span class="k">AMOUNT:</span><span class="v" id="pAmount">—</span></div>
+
+              <div class="metaRow"><span class="k">ROLE:</span><span class="v" id="pRole">—</span></div>
+              <div class="metaRow"><span class="k">STATUS:</span><span class="v">PAID</span></div>
+            </div>
+
+            <div class="blocks">
+              <div class="box" style="grid-column:1 / -1;">
+                <h3>NOTE</h3>
+                <p id="pShortNote">—</p>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th class="sl">SL.NO</th>
+                  <th>DESCRIPTION</th>
+                  <th class="amt">AMOUNT</th>
+                </tr>
+              </thead>
+              <tbody id="pItemsBody">
+                <tr>
+                  <td class="sl">1</td>
+                  <td class="desc">Salary payment</td>
+                  <td class="amt" id="pTblAmount">£ 0.00</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="footer">
+              <div class="small">
+                This payslip is generated digitally. Please verify slip number and details.
+              </div>
+              <div class="signBox">
+                <img id="pSigImg" class="sigImg" alt="Signature"/>
+                <div class="signLine" id="pOwnerLine">Management Signature</div>
+                <div class="signMeta" id="pOwnerMeta"></div>
+              </div>
+            </div>
+
+            <div class="bottomThanks">
+              Thank you for working with RS Home Care.
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  const KEY_SETTINGS = "payslip_settings_v1";
+  const KEY_SLIPS    = "payslip_saved_v1";
+  const SLIP_COUNTER = "payslip_counter_v1"; // stores last slip number
+
+  let settings = {
+    company: "RS HOME CARE",
+    companyContact: `Cell: +91 7550052799
+Email: rshomecaremaduraiofficial@gmail.com`,
+    regNo: "UDYAM-TN-23-0063274",
+    ownerName: "Owners of the Management",
+    ownerTitle: "Authorized Signatory",
+    logoDataUrl: "",
+    sigDataUrl: ""
+  };
+
+  function safeText(v){ return (v ?? "").toString().trim(); }
+
+  function moneyGBP(n){
+    const x = Number(n || 0);
+    return "£ " + x.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function monthLabel(yyyyMm){
+    // input from <input type="month"> => "YYYY-MM"
+    if(!yyyyMm) return "";
+    const [y,m] = yyyyMm.split("-").map(Number);
+    if(!y || !m) return "";
+    const d = new Date(y, m-1, 1);
+    return d.toLocaleString("en-GB", { month:"long", year:"numeric" });
+  }
+
+  function nextSlipNo(){
+    // Start at RS-43520 if nothing stored
+    const last = Number(localStorage.getItem(SLIP_COUNTER) || "43519");
+    const next = last + 1;
+    localStorage.setItem(SLIP_COUNTER, String(next));
+    return `RS-${next}`;
+  }
+
+  function switchTab(name){
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector(`.tab[data-tab="${name}"]`)?.classList.add("active");
+
+    document.getElementById("tab-create").style.display = name === "create" ? "block" : "none";
+    document.getElementById("tab-saved").style.display  = name === "saved"  ? "block" : "none";
+    document.getElementById("tab-settings").style.display = name === "settings" ? "block" : "none";
+
+    if(name === "saved") renderSavedList();
+    document.getElementById("previewSub").textContent =
+      name === "settings"
+        ? "Settings apply to all payslips (logo/signature/header)"
+        : "Create payslip → Save or Download PDF";
+  }
+
+  async function fileToDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function loadSettings(){
+    const raw = localStorage.getItem(KEY_SETTINGS);
+    if(raw){
+      try{ settings = { ...settings, ...JSON.parse(raw) }; }catch{}
+    }
+    document.getElementById("setCompany").value = settings.company || "";
+    document.getElementById("setCompanyContact").value = settings.companyContact || "";
+    document.getElementById("setRegNo").value = settings.regNo || "";
+    document.getElementById("setOwnerName").value = settings.ownerName || "";
+    document.getElementById("setOwnerTitle").value = settings.ownerTitle || "";
+  }
+
+  function saveSettings(showAlert=true){
+    settings.company = safeText(document.getElementById("setCompany").value);
+    settings.companyContact = safeText(document.getElementById("setCompanyContact").value);
+    settings.regNo = safeText(document.getElementById("setRegNo").value);
+    settings.ownerName = safeText(document.getElementById("setOwnerName").value);
+    settings.ownerTitle = safeText(document.getElementById("setOwnerTitle").value);
+
+    localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
+    applyToPreview();
+    if(showAlert) alert("Settings saved.");
+  }
+
+  function resetSettings(){
+    localStorage.removeItem(KEY_SETTINGS);
+    location.reload();
+  }
+
+  document.getElementById("setLogo").addEventListener("change", async (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    settings.logoDataUrl = await fileToDataUrl(f);
+    saveSettings(false);
+  });
+
+  document.getElementById("setSig").addEventListener("change", async (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    settings.sigDataUrl = await fileToDataUrl(f);
+    saveSettings(false);
+  });
+
+  function nowId(){
+    return "slip_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+  }
+
+  function getSavedSlips(){
+    const raw = localStorage.getItem(KEY_SLIPS);
+    if(!raw) return [];
+    try{
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    }catch{ return []; }
+  }
+  function setSavedSlips(list){
+    localStorage.setItem(KEY_SLIPS, JSON.stringify(list));
+  }
+
+  function clearForm(){
+    ["inPayMonth","inPayDate","inEmpName","inAccessNo","inPhone","inRole","inAmount","inShortNote"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.value = (id === "inAmount") ? 0 : "";
+    });
+    document.getElementById("inMethod").value = "Online Transfer";
+    applyToPreview();
+  }
+
+  function newSlip(){
+    // new slip number and (optional) auto date
+    document.getElementById("inSlipNo").value = nextSlipNo();
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,"0");
+    const dd = String(today.getDate()).padStart(2,"0");
+
+    if(!document.getElementById("inPayDate").value){
+      document.getElementById("inPayDate").value = `${yyyy}-${mm}-${dd}`;
+    }
+    if(!document.getElementById("inPayMonth").value){
+      document.getElementById("inPayMonth").value = `${yyyy}-${mm}`;
+    }
+
+    applyToPreview();
+  }
+
+  function applyToPreview(){
+    // Settings -> header
+    document.getElementById("pCompany").textContent = settings.company || "—";
+    document.getElementById("pCompanyContact").textContent = settings.companyContact || "—";
+    document.getElementById("pRegNo").textContent = settings.regNo ? ("Registration No: " + settings.regNo) : "—";
+    document.getElementById("pLogoImg").src = settings.logoDataUrl || "";
+    document.getElementById("pSigImg").src = settings.sigDataUrl || "";
+
+    document.getElementById("pOwnerLine").textContent = (settings.ownerName || "Management") + " Signature";
+    document.getElementById("pOwnerMeta").textContent = settings.ownerTitle || "";
+
+    // Create fields
+    const slipNo = safeText(document.getElementById("inSlipNo").value) || "—";
+    document.getElementById("pSlipNo").textContent = slipNo;
+
+    const payMonthRaw = safeText(document.getElementById("inPayMonth").value);
+    document.getElementById("pPayMonth").textContent = monthLabel(payMonthRaw) || "—";
+
+    const payDate = safeText(document.getElementById("inPayDate").value);
+    document.getElementById("pPayDate").textContent = payDate || "—";
+
+    document.getElementById("pEmpName").textContent = safeText(document.getElementById("inEmpName").value) || "—";
+    document.getElementById("pAccessNo").textContent = safeText(document.getElementById("inAccessNo").value) || "—";
+    document.getElementById("pPhone").textContent = safeText(document.getElementById("inPhone").value) || "—";
+    document.getElementById("pRole").textContent = safeText(document.getElementById("inRole").value) || "—";
+    document.getElementById("pMethod").textContent = safeText(document.getElementById("inMethod").value) || "—";
+
+    const amt = Number(document.getElementById("inAmount").value || 0);
+    document.getElementById("pAmount").textContent = moneyGBP(amt);
+    document.getElementById("pTblAmount").textContent = moneyGBP(amt);
+    document.getElementById("liveAmount").textContent = "AMOUNT: " + moneyGBP(amt);
+
+    document.getElementById("pShortNote").textContent = safeText(document.getElementById("inShortNote").value) || "—";
+  }
+
+  function savePayslip(){
+    const slipNo = safeText(document.getElementById("inSlipNo").value);
+    if(!slipNo){ alert("Please enter Slip No before saving."); return; }
+
+    const data = {
+      id: nowId(),
+      createdAt: new Date().toISOString(),
+      slipNo,
+      payMonth: safeText(document.getElementById("inPayMonth").value),
+      payDate: safeText(document.getElementById("inPayDate").value),
+      empName: safeText(document.getElementById("inEmpName").value),
+      accessNo: safeText(document.getElementById("inAccessNo").value),
+      phone: safeText(document.getElementById("inPhone").value),
+      role: safeText(document.getElementById("inRole").value),
+      method: safeText(document.getElementById("inMethod").value),
+      amount: Number(document.getElementById("inAmount").value || 0),
+      shortNote: safeText(document.getElementById("inShortNote").value),
+      settingsSnapshot: JSON.parse(JSON.stringify(settings))
+    };
+
+    const list = getSavedSlips();
+    list.unshift(data);
+    setSavedSlips(list);
+    alert("Payslip saved!");
+    renderSavedList();
+  }
+
+  function loadPayslip(id){
+    const list = getSavedSlips();
+    const s = list.find(x => x.id === id);
+    if(!s) return;
+
+    document.getElementById("inSlipNo").value = s.slipNo || "";
+    document.getElementById("inPayMonth").value = s.payMonth || "";
+    document.getElementById("inPayDate").value = s.payDate || "";
+    document.getElementById("inEmpName").value = s.empName || "";
+    document.getElementById("inAccessNo").value = s.accessNo || "";
+    document.getElementById("inPhone").value = s.phone || "";
+    document.getElementById("inRole").value = s.role || "";
+    document.getElementById("inMethod").value = s.method || "Online Transfer";
+    document.getElementById("inAmount").value = s.amount ?? 0;
+    document.getElementById("inShortNote").value = s.shortNote || "";
+
+    if(s.settingsSnapshot){
+      settings = { ...settings, ...s.settingsSnapshot };
+      localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
+      loadSettings();
+    }
+
+    applyToPreview();
+    switchTab("create");
+  }
+
+  function deletePayslip(id){
+    const list = getSavedSlips().filter(x => x.id !== id);
+    setSavedSlips(list);
+    renderSavedList();
+  }
+
+  function clearAllSaved(){
+    if(!confirm("Delete ALL saved payslips?")) return;
+    localStorage.removeItem(KEY_SLIPS);
+    renderSavedList();
+  }
+
+  function renderSavedList(){
+    const q = safeText(document.getElementById("searchSaved")?.value).toLowerCase();
+    const list = getSavedSlips();
+    document.getElementById("savedCount").textContent = `${list.length} saved`;
+
+    const filtered = list.filter(s => {
+      const stext = `${s.slipNo} ${s.empName} ${s.payMonth} ${s.payDate}`.toLowerCase();
+      return !q || stext.includes(q);
+    });
+
+    const el = document.getElementById("savedList");
+    el.innerHTML = "";
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="pill">No saved payslips found.</div>`;
+      return;
+    }
+
+    filtered.forEach(s => {
+      const d = document.createElement("div");
+      d.className = "item";
+
+      const left = document.createElement("div");
+      const title = document.createElement("h3");
+      title.textContent = `${s.slipNo || "Payslip"} • ${s.empName || "—"}`;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `Month: ${monthLabel(s.payMonth) || "—"}\nDate: ${s.payDate || "—"}\nAmount: ${moneyGBP(s.amount || 0)}`;
+      left.appendChild(title);
+      left.appendChild(meta);
+
+      const right = document.createElement("div");
+      right.className = "itemActions";
+
+      const btnOpen = document.createElement("button");
+      btnOpen.className = "btn";
+      btnOpen.textContent = "Open";
+      btnOpen.onclick = () => loadPayslip(s.id);
+
+      const btnPdf = document.createElement("button");
+      btnPdf.className = "btn primary";
+      btnPdf.textContent = "PDF";
+      btnPdf.onclick = async () => {
+        loadPayslip(s.id);
+        await new Promise(r=>setTimeout(r, 120));
+        downloadPDFCurrent();
+      };
+
+      const btnDel = document.createElement("button");
+      btnDel.className = "btn danger";
+      btnDel.textContent = "Delete";
+      btnDel.onclick = () => deletePayslip(s.id);
+
+      right.appendChild(btnOpen);
+      right.appendChild(btnPdf);
+      right.appendChild(btnDel);
+
+      d.appendChild(left);
+      d.appendChild(right);
+
+      el.appendChild(d);
+    });
+  }
+
+  /* ✅ FIX: PDF always 1 page */
+  async function downloadPDFCurrent(){
+    applyToPreview();
+    await new Promise(r => setTimeout(r, 150));
+
+    const el = document.getElementById("slipArea");
+
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff"
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+
+    const props = pdf.getImageProperties(imgData);
+    const imgW = props.width;
+    const imgH = props.height;
+
+    const ratio = Math.min(pageW / imgW, pageH / imgH);
+    const w = imgW * ratio;
+    const h = imgH * ratio;
+
+    const x = (pageW - w) / 2;
+    const y = (pageH - h) / 2;
+
+    pdf.addImage(imgData, "PNG", x, y, w, h);
+
+    const slipNo = safeText(document.getElementById("inSlipNo").value).replace(/[^\w\-#]/g, "");
+    pdf.save(`Payslip${slipNo ? "_" + slipNo : ""}.pdf`);
+  }
+
+  // live preview bindings
+  ["inSlipNo","inPayMonth","inPayDate","inEmpName","inAccessNo","inPhone","inRole","inMethod","inAmount","inShortNote"]
+    .forEach(id => document.getElementById(id).addEventListener("input", applyToPreview));
+
+  // init
+  loadSettings();
+
+  // set default slip no once (if empty)
+  if(!safeText(document.getElementById("inSlipNo").value)){
+    document.getElementById("inSlipNo").value = nextSlipNo();
+  }else{
+    // ensure counter at least matches typed number
+    const m = safeText(document.getElementById("inSlipNo").value).match(/^RS-(\d+)$/i);
+    if(m){
+      const n = Number(m[1]);
+      const last = Number(localStorage.getItem(SLIP_COUNTER) || "43519");
+      if(isFinite(n) && n > last) localStorage.setItem(SLIP_COUNTER, String(n));
+    }
+  }
+
+  // auto set month/date if empty
+  newSlip();
+
+  applyToPreview();
+  renderSavedList();
+</script>
+</body>
+</html>
