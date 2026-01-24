@@ -91,7 +91,25 @@
 
         <div class="navGroupTitle">System</div>
         <button class="navItem" data-page="settings">⚙️ Settings</button>
-
+ <a class="navItem"
+     href="./invoice.html"
+     target="_blank"
+     rel="noopener"
+     style="flex:1; text-align:center; text-decoration:none; display:flex; align-items:center; ">
+    🧾 Client Invoice Generator
+  </a>
+<button class="navItem" id="attendanceToggle">
+  🗓️ Attendance
+</button>
+<div id="attendanceMenu" class="attendanceMenu hidden">
+  <button type="button" class="navItem subItem" onclick="window.open('./index1.html','_blank')">Harish Madhusan</button>
+  <button type="button" class="navItem subItem" onclick="window.open('./daily.html','_blank')">Subasini</button>
+  <button type="button" class="navItem subItem" onclick="window.open('./monthly.html','_blank')">📊 Monthly Attendance</button>
+  <button type="button" class="navItem subItem" onclick="window.open('./report.html','_blank')">🧾 Attendance Report</button>
+  <button type="button" class="navItem subItem" onclick="window.open('./overtime.html','_blank')">⏱ Overtime</button>
+  <button type="button" class="navItem subItem" onclick="window.open('./leave.html','_blank')">🏖 Leave Management</button>
+  <button type="button" class="navItem subItem" onclick="window.open('./attendance-settings.html','_blank')">⚙️ Attendance Settings</button>
+</div>
         <div class="sidebarNote">
           This Database is completely design to manage the RS Home Care Company complete details.
         </div>
@@ -104,14 +122,14 @@
           <div class="pageHeader">
             <div>
               <h2>Dashboard</h2>
-              <p class="muted">Monthly / Yearly accounts, profit & loss, and recent transactions.</p>
+              <p class="muted">RS Home Care Monthly,Yearly accounts, profit & loss and recent transactions.</p>
             </div>
           </div>
 
           <!-- DASHBOARD FILTER (Month/Year + Apply) -->
           <div class="panel" style="margin-bottom:12px;">
             <div class="panelHeader">
-              <h3>Filter Accounts</h3>
+              <h3>Accounts Details ( Month and Year Perferance )</h3>
             </div>
 
             <div class="grid2">
@@ -145,10 +163,6 @@
               <button id="clearDashFilterBtn" class="btn">Clear</button>
               <small id="dashFilterLabel" class="muted" style="margin-left:10px;"></small>
             </div>
-
-            <small class="muted" style="display:block;margin-top:8px;">
-              Tip: Choose Month + Year for monthly view, choose only Year for yearly summary, or clear for current month/year defaults.
-            </small>
           </div>
 
           <div class="cards">
@@ -209,7 +223,7 @@
           <div class="pageHeader">
             <div>
               <h2>Client Details</h2>
-              <p class="muted">Add / Edit / View / Delete clients. Amount Paid adds to Income.</p>
+              <p class="muted">Access only For Admin</p>
             </div>
             <div class="headerActions">
               <div class="searchWrap">
@@ -246,7 +260,7 @@
           <div class="pageHeader">
             <div>
               <h2>Employee Details</h2>
-              <p class="muted">Salary Allocated is for viewing only (does not affect income).</p>
+              <p class="muted">Access only For Admin</p>
             </div>
             <div class="headerActions">
               <div class="searchWrap">
@@ -281,7 +295,7 @@
           <div class="pageHeader">
             <div>
               <h2>Worker Verification</h2>
-              <p class="muted">Worker details + Aadhar image + Worker photo (both downloadable).</p>
+              <p class="muted">Access only For Admin</p>
             </div>
             <div class="headerActions">
               <div class="searchWrap">
@@ -315,7 +329,7 @@
           <div class="pageHeader">
             <div>
               <h2>Salary Details</h2>
-              <p class="muted">Salary Amount is added to Expense automatically.</p>
+              <p class="muted">Access only For Admin</p>
             </div>
             <div class="headerActions">
               <div class="searchWrap">
@@ -349,7 +363,7 @@
           <div class="pageHeader">
             <div>
               <h2>Expense</h2>
-              <p class="muted">Add / View / Delete expenses. (Salary is also counted in Expense.)</p>
+              <p class="muted">Access only For Admin</p>
             </div>
             <div class="headerActions">
               <div class="searchWrap">
@@ -382,7 +396,7 @@
           <div class="pageHeader">
             <div>
               <h2>Income</h2>
-              <p class="muted">Income is auto-created from Client “Amount Paid”.</p>
+              <p class="muted">Access only For Admin</p>
             </div>
             <div class="headerActions">
               <div class="searchWrap">
@@ -413,7 +427,7 @@
           <div class="pageHeader">
             <div>
               <h2>Settings</h2>
-              <p class="muted">Admin-only options and system tools (Backup / Restore / Logs).</p>
+              <p class="muted">(Backup / Restore / Logs).</p>
             </div>
           </div>
 
