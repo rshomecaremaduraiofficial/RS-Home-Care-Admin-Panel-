@@ -502,7 +502,8 @@
           <input id="setCompany" value="RS HOME CARE"/>
 
           <label>Company Contact Details</label>
-          <textarea id="setCompanyContact">Cell: +91 7550052799
+          <textarea id="setCompanyContact">
+            Cell: +91 7550052799
 Email: rshomecaremaduraiofficial@gmail.com</textarea>
 
           <div class="grid2">
@@ -529,6 +530,16 @@ Email: rshomecaremaduraiofficial@gmail.com</textarea>
               <input id="setSig" type="file" accept="image/*"/>
             </div>
           </div>
+          <!-- ✅ Backup / Restore (JSON) -->
+<label>Backup / Restore (JSON)</label>
+<div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+<button class="btn" type="button" onclick="backupJson()">Backup JSON</button>
+
+
+<!-- Hidden file input (triggered by the button) -->
+<input id="restoreJsonInput" type="file" accept="application/json,.json" style="display:none" />
+<button class="btn ghost" type="button" onclick="document.getElementById('restoreJsonInput').click()">Restore JSON</button>
+</div>
 
           <div class="rowBtns" style="grid-template-columns: repeat(2, minmax(0,1fr));">
             <button class="btn primary" onclick="saveSettings()">Save Settings</button>
@@ -946,6 +957,123 @@ Email: rshomecaremaduraiofficial@gmail.com`,
       el.appendChild(d);
     });
   }
+  // ===========================
+// ✅ BACKUP / RESTORE JSON
+// ===========================
+function downloadTextFile(filename, text, mime="application/json"){
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 500);
+}
+
+function backupJson(){
+  // Save latest settings from UI into localStorage (no alert)
+  saveSettings(false);
+
+  const payload = {
+    app: "Payslip Studio",
+    version: "backup_v1",
+    exportedAt: new Date().toISOString(),
+    keys: { settings: KEY_SETTINGS, slips: KEY_SLIPS, counter: SLIP_COUNTER },
+    settings: (()=>{
+      try { return JSON.parse(localStorage.getItem(KEY_SETTINGS) || "null"); } catch { return null; }
+    })(),
+    slips: (()=>{
+      try { return JSON.parse(localStorage.getItem(KEY_SLIPS) || "[]"); } catch { return []; }
+    })(),
+    counter: (()=>{
+      // store slip counter too, so RS-xxxxx continues correctly after restore
+      const c = localStorage.getItem(SLIP_COUNTER);
+      return c ? String(c) : null;
+    })()
+  };
+
+  const dateTag = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+  downloadTextFile(`payslip_backup_${dateTag}.json`, JSON.stringify(payload, null, 2));
+  alert("Backup JSON downloaded.");
+}
+
+function isObject(x){ return x && typeof x === "object" && !Array.isArray(x); }
+
+function restoreFromPayload(payload){
+  // Accept:
+  // 1) Our format: { settings, slips, counter }
+  // 2) Raw localStorage style: { [KEY_SETTINGS]: "...", [KEY_SLIPS]: "...", [SLIP_COUNTER]: "..." }
+  let nextSettings = null;
+  let nextSlips = [];
+  let nextCounter = null;
+
+  if(isObject(payload) && ("settings" in payload || "slips" in payload || "counter" in payload)){
+    nextSettings = payload.settings ?? null;
+    nextSlips = payload.slips ?? [];
+    nextCounter = payload.counter ?? null;
+  } else if(isObject(payload) && (KEY_SETTINGS in payload || KEY_SLIPS in payload || SLIP_COUNTER in payload)){
+    try { nextSettings = JSON.parse(payload[KEY_SETTINGS] || "null"); } catch { nextSettings = null; }
+    try { nextSlips = JSON.parse(payload[KEY_SLIPS] || "[]"); } catch { nextSlips = []; }
+    nextCounter = payload[SLIP_COUNTER] ?? null;
+  } else {
+    throw new Error("Invalid backup file format.");
+  }
+
+  if(nextSettings && !isObject(nextSettings)) nextSettings = null;
+  if(!Array.isArray(nextSlips)) nextSlips = [];
+
+  const ok = confirm(
+    "Restore will overwrite your current Settings and Saved Payslips in this browser.\n\nDo you want to continue?"
+  );
+  if(!ok) return;
+
+  // Write to localStorage
+  localStorage.setItem(KEY_SETTINGS, JSON.stringify({ ...settings, ...(nextSettings || {}) }));
+  localStorage.setItem(KEY_SLIPS, JSON.stringify(nextSlips));
+
+  if(nextCounter !== null && nextCounter !== undefined){
+    localStorage.setItem(SLIP_COUNTER, String(nextCounter));
+  }
+
+  // Reload in-memory settings + UI
+  loadSettings();
+  try{
+    const rawSet = localStorage.getItem(KEY_SETTINGS);
+    if(rawSet) settings = { ...settings, ...JSON.parse(rawSet) };
+  }catch{}
+
+  // Refresh saved list + preview
+  renderSavedList();
+  applyToPreview();
+
+  alert("Restore completed.");
+}
+
+async function restoreJsonFromFile(file){
+  const text = await file.text();
+  let payload;
+  try{
+    payload = JSON.parse(text);
+  }catch{
+    throw new Error("This file is not valid JSON.");
+  }
+  restoreFromPayload(payload);
+}
+
+// Wire restore input
+document.getElementById("restoreJsonInput").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  try{
+    await restoreJsonFromFile(file);
+  }catch(err){
+    alert(err?.message || "Restore failed.");
+  }finally{
+    e.target.value = ""; // allow same file re-select
+  }
+});
 
   /* ✅ FIX: PDF always 1 page */
   async function downloadPDFCurrent(){
