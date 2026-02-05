@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" href="logo.png" type="image/png">
+  <title>Subasini Attendance</title>
+
+  <style>
+    :root{
+      --blue:#0b4f8a;
+      --green:#10b21e;
+      --bg:#f2f4f7;
+      --text:#1f2a37;
+      --muted:#667085;
+      --border:#d6dee8;
+      --card:#ffffff;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      font-family:Arial,sans-serif;
+      color:var(--text);
+    }
+
+    .wrap{
+      display:flex;
+      justify-content:center;
+      padding:18px 10px 28px;
+    }
+
+    .card{
+      width:100%;
+      max-width:620px;
+      text-align:center;
+      animation:pageIn .45s ease-out both;
+    }
+
+    @keyframes pageIn{
+      from{opacity:0;transform:translateY(10px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+
+    .img{
+      width:100%;
+      max-width:320px;
+      height:auto;
+      border-radius:10px;
+      box-shadow:0 10px 26px rgba(0,0,0,.18);
+      display:block;
+      margin:0 auto;
+    }
+
+    /* Animated info block */
+    .notice{
+      margin:14px auto 0;
+      background:var(--card);
+      border:1px solid #e6edf5;
+      border-radius:14px;
+      padding:12px 12px;
+      box-shadow:0 8px 22px rgba(0,0,0,.08);
+      text-align:left;
+      animation:floatIn .55s ease-out both;
+    }
+    @keyframes floatIn{
+      from{opacity:0;transform:translateY(12px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    .noticeTitle{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:900;
+      color:var(--blue);
+      letter-spacing:.2px;
+    }
+    .noticeText{
+      margin-top:6px;
+      color:#3c4b5f;
+      font-size:13px;
+      line-height:1.4;
+    }
+    .pillRow{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      background:#f2f7ff;
+      border:1px solid #d8e6ff;
+      color:#1f3f66;
+      font-size:12px;
+      font-weight:900;
+      animation:pulse 2.2s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{transform:scale(1)}
+      50%{transform:scale(1.02)}
+    }
+
+    /* Form panel */
+    .panel{
+      margin:14px auto 0;
+      background:var(--card);
+      border-radius:14px;
+      padding:16px;
+      box-shadow:0 8px 22px rgba(0,0,0,.10);
+      text-align:left;
+      border:1px solid #e8eef6;
+      animation:panelIn .55s ease-out both;
+      animation-delay:.05s;
+    }
+    @keyframes panelIn{
+      from{opacity:0;transform:translateY(10px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+
+    .panelHead{
+      font-weight:900;
+      color:#223;
+      margin-bottom:10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .smallHint{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    /* Perfect alignment grid */
+    .formGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .field label{
+      display:block;
+      font-size:12px;
+      margin:0 0 6px;
+      color:#344054;
+      font-weight:800;
+    }
+    input, select{
+      width:100%;
+      padding:11px 12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      outline:none;
+      font-size:14px;
+      background:#fff;
+      transition:border-color .15s ease, box-shadow .15s ease;
+    }
+    input:focus, select:focus{
+      border-color:#91b0d1;
+      box-shadow:0 0 0 4px rgba(11,79,138,.10);
+    }
+    .span2{grid-column:1 / -1;}
+
+    /* Buttons */
+    .btnRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:14px;
+    }
+    .btn{
+      flex:1 1 230px;
+      padding:12px 14px;
+      border:0;
+      border-radius:12px;
+      color:#fff;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(0,0,0,.12);
+      text-align:center;
+      user-select:none;
+      transition:transform .12s ease, filter .12s ease, opacity .12s ease;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn:hover{filter:brightness(1.03)}
+    .btn.primary{background:var(--blue)}
+    .btn.secondary{
+      background:#3b556b;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center
+    }
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+
+    /* Status line */
+    #msg{
+      margin-top:10px;
+      font-size:13px;
+      color:var(--muted);
+      min-height:18px;
+    }
+
+    /* Popup */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:999;
+    }
+    .popup{
+      width:min(420px,100%);
+      background:#fff;
+      border-radius:16px;
+      padding:16px;
+      box-shadow:0 18px 45px rgba(0,0,0,.25);
+      text-align:center;
+      animation:popIn .18s ease-out both;
+    }
+    @keyframes popIn{
+      from{transform:scale(.96);opacity:0}
+      to{transform:scale(1);opacity:1}
+    }
+    .popup h3{margin:0 0 8px;color:var(--blue)}
+    .popup p{margin:0;color:#243;line-height:1.45}
+    .ok{
+      margin-top:14px;
+      padding:10px 14px;
+      border:0;
+      border-radius:12px;
+      background:var(--green);
+      color:#fff;
+      font-weight:900;
+      cursor:pointer;
+      width:170px;
+      box-shadow:0 8px 18px rgba(0,0,0,.12);
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width:600px){
+      .wrap{padding:14px 10px 24px}
+      .notice{border-radius:12px;padding:11px}
+      .panel{border-radius:12px;padding:14px}
+      .formGrid{grid-template-columns:1fr;}
+      .btnRow{flex-direction:column}
+      /* Mobile buttons NORMAL height */
+      .btn{padding:9px 12px;font-size:14px;border-radius:10px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+
+      <img src="Subasiniid.jpg" alt="RS Home Care Card" class="img"/>
+
+      <div class="notice">
+        <div class="noticeTitle">✅ Attendance Instructions</div>
+        <div class="noticeText">
+          Make sure all your details are correct before submitting.
+        </div>
+        <div class="pillRow">
+          <div class="pill">📝 Fill details correctly</div>
+          <div class="pill">✅ Submit anytime</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead">
+          <div>Mark Attendance</div>
+          <div class="smallHint">No time / location restriction</div>
+        </div>
+
+        <div class="formGrid">
+          <div class="field">
+            <label>Name</label>
+            <input id="name" placeholder="Enter your name">
+          </div>
+
+          <div class="field">
+            <label>Access No</label>
+            <input id="accessNo" placeholder="RS-14161">
+          </div>
+
+          <div class="field">
+            <label>Role</label>
+            <select id="role">
+              <option value="" selected>Select role</option>
+              <option>Managing Director</option>
+              <option>Admin</option>
+              <option>Designer</option>
+              <option>Admin and Designer</option>
+              <option>Supervisor</option>
+              <option>Team Leader</option>
+              <option>Tele-caller</option>
+              <option>Client Worker</option>
+              <option>Cleaner</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Phone</label>
+            <input id="phone" placeholder="+91..." inputmode="tel">
+          </div>
+
+          <div class="field span2">
+            <div id="msg"></div>
+          </div>
+        </div>
+
+        <div class="btnRow">
+          <button class="btn primary" id="attendanceBtn">Mark Attendance</button>
+          <a class="btn secondary" href="admin 2.html">View Attendance (Admin)</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Popup -->
+  <div class="overlay" id="overlay">
+    <div class="popup">
+      <h3 id="popTitle">✅</h3>
+      <p id="popText">Message</p>
+      <button class="ok" id="okBtn">OK</button>
+    </div>
+  </div>
+
+<script>
+  // ✅ Apps Script Web App URL
+  const API_URL = "https://script.google.com/macros/s/AKfycby9qVjcBYaH304XfS93IU7j6xk0ID5f-3Yz50TMGOEfVKMRb0W4gwBr8Dy09V8pRfrwZg/exec";
+
+  // JSONP helper (GitHub Pages safe)
+  function jsonp(params){
+    return new Promise((resolve, reject) => {
+      const cb = "cb_" + Math.random().toString(36).slice(2);
+      params.callback = cb;
+
+      const url = new URL(API_URL);
+      Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+
+      const s = document.createElement("script");
+      s.src = url.toString();
+      s.onerror = () => reject(new Error("Network error"));
+
+      window[cb] = (data) => {
+        resolve(data);
+        try { delete window[cb]; } catch(e){}
+        s.remove();
+      };
+
+      document.body.appendChild(s);
+    });
+  }
+
+  // UI helpers
+  const overlay = document.getElementById("overlay");
+  const okBtn = document.getElementById("okBtn");
+  const popTitle = document.getElementById("popTitle");
+  const popText = document.getElementById("popText");
+  const msg = document.getElementById("msg");
+  const btn = document.getElementById("attendanceBtn");
+
+  // ✅ Clear form after success (NEW)
+  let clearOnClose = false;
+  const nameEl = document.getElementById("name");
+  const accessEl = document.getElementById("accessNo");
+  const roleEl = document.getElementById("role");
+  const phoneEl = document.getElementById("phone");
+  function clearForm(){
+    nameEl.value = "";
+    accessEl.value = "";
+    roleEl.value = "";
+    phoneEl.value = "";
+  }
+
+  function setMsg(text, color){
+    msg.textContent = text || "";
+    msg.style.color = color || "#667085";
+  }
+
+  function showPopup(title, htmlText){
+    popTitle.textContent = title;
+    popText.innerHTML = htmlText;
+    overlay.style.display = "flex";
+  }
+
+  // ✅ When popup OK is clicked, clear if success
+  okBtn.addEventListener("click", ()=>{
+    overlay.style.display = "none";
+    if(clearOnClose){
+      clearForm();
+      clearOnClose = false;
+    }
+  });
+
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) overlay.style.display="none"; });
+
+  function deviceType(){
+    const ua = navigator.userAgent || "";
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(ua) ? "Mobile" : "Desktop";
+  }
+
+  // Submit
+  btn.addEventListener("click", async ()=>{
+    setMsg("");
+
+    const name = nameEl.value.trim();
+    const accessNo = accessEl.value.trim();
+    const role = roleEl.value.trim();
+    const phone = phoneEl.value.trim();
+
+    if(!name || !accessNo){
+      setMsg("Please enter Name and Access No.", "crimson");
+      return;
+    }
+    if(!role){
+      setMsg("Please select Role.", "crimson");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+    setMsg("Saving attendance...");
+
+    try{
+      const data = await jsonp({
+        action: "add",
+        name,
+        accessNo,
+        role,
+        phone,
+        device: `${deviceType()} | ${navigator.userAgent}`
+      });
+
+      btn.disabled = false;
+      btn.textContent = "Mark Attendance";
+      setMsg("");
+
+      if(data.ok){
+        clearOnClose = true; // ✅ clear after popup OK
+        showPopup("Attendance Recorded ✅", `Thank you,<br><b>RS HOME CARE Team</b>`);
+      }else{
+        showPopup(data.error || "Failed ❌", `Please try again.<br><br><b>RS Home Care Admin</b>`);
+      }
+    }catch(e){
+      btn.disabled = false;
+      btn.textContent = "Mark Attendance";
+      setMsg("Network error. Please try again.", "crimson");
+    }
+  });
+</script>
+</body>
+</html>
+
