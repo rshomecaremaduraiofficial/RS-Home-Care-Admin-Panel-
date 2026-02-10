@@ -1,8 +1,8 @@
 
 const APP_CONFIG = {
   COMPANY_NAME: "RS Home Care",
-  DEFAULT_USERNAME: "RShomecare",
-  DEFAULT_PASSWORD: "RS@Home",
+  DEFAULT_USERNAME: "Harish",
+  DEFAULT_PASSWORD: "Prity@1416",
   DEFAULT_ADMIN_6_DIGIT_CODE: "141614",
   VERSION: "RS v1.1.0"
 };
@@ -1514,3 +1514,4 @@ wireDashboardFilter(db);
 
 // run
 document.addEventListener("DOMContentLoaded", init);
+
