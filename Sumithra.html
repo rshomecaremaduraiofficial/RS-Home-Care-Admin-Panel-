@@ -268,7 +268,7 @@
           Make sure all your details are correct and submit on time.
         </div>
         <div class="pillRow">
-          <div class="pill">⏰ IST: 10:00 AM – 11:15 AM</div>
+          <div class="pill">⏰ IST: 10:00 AM – 10:30 AM</div>
           <div class="pill" id="locPill">📍 Location check enabled</div>
         </div>
       </div>
@@ -336,17 +336,16 @@
 
 <script>
   // ✅ Apps Script Web App URL
-  const API_URL = "https://script.google.com/macros/s/AKfycbxQ_mkDefSArjJwwMxDuKlckLcJK0Z6NpWCc0-PwGSDkQdIzL10XbZTFctAurFjjXQr/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbyvXOpxjfbuL9TVJprhYcD-IKE70HMoBMKrkGI4slal-LzH8GleZ1PCHiFoezzWGa2T/exec";
 
   // ✅ Location lock (YOUR OFFICE)
   const OFFICE_LAT = 9.95228;
   const OFFICE_LNG = 78.10099;
   const ALLOWED_RADIUS_METERS = 150; // increase to 200-300 if GPS weak
 
-  // ✅ Attendance window (IST)
-  // 10:00 AM to 11:15 AM
+ 
   const START_MIN = 10 * 60 + 0;
-  const END_MIN   = 11 * 60 + 15;
+  const END_MIN   = 10 * 60 + 30;
 
   // ---------- JSONP ----------
   function jsonp(params){
@@ -496,7 +495,7 @@
       const nowText = getISTParts().text;
       showPopup("Attendance Time Out ⏰",
         `Your attendance time is out. We can't record your attendance now.<br><br>
-         <b>Time Allowed (IST):</b> 10:00 AM to 11:15 AM<br>
+         <b>Time Allowed (IST):</b> 10:00 AM to 10:30 AM<br>
          <b>Current:</b> ${nowText}<br><br>
          Please call the admin for the change.<br><br>
          Thank you,<br><b>RS Home Care Admin</b>`);
