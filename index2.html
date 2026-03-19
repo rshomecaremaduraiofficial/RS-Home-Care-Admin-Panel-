@@ -343,7 +343,6 @@
   const OFFICE_LNG = 78.10099;
   const ALLOWED_RADIUS_METERS = 150; // increase to 200-300 if GPS weak
 
-
   const START_MIN = 10 * 60 + 0;
   const END_MIN   = 10 * 60 + 30;
 
@@ -380,12 +379,12 @@
   const istNowEl = document.getElementById("istNow");
   const locPill = document.getElementById("locPill");
 
-  // ✅ Clear form after success (NEW)
   let clearOnClose = false;
   const nameEl = document.getElementById("name");
   const accessEl = document.getElementById("accessNo");
   const roleEl = document.getElementById("role");
   const phoneEl = document.getElementById("phone");
+
   function clearForm(){
     nameEl.value = "";
     accessEl.value = "";
@@ -404,7 +403,6 @@
     overlay.style.display = "flex";
   }
 
-  // ✅ When popup OK is clicked, clear if success
   okBtn.addEventListener("click", ()=>{
     overlay.style.display = "none";
     if(clearOnClose){
@@ -474,23 +472,28 @@
 
   // ---------- Submit ----------
   btn.addEventListener("click", async ()=>{
+    btn.disabled = true; // ✅ prevent spam clicks immediately
+    btn.textContent = "Checking...";
     setMsg("");
 
-    const name = document.getElementById("name").value.trim();
-    const accessNo = document.getElementById("accessNo").value.trim();
-    const role = document.getElementById("role").value.trim();
-    const phone = document.getElementById("phone").value.trim();
+    const name = nameEl.value.trim();
+    const accessNo = accessEl.value.trim();
+    const role = roleEl.value.trim();
+    const phone = phoneEl.value.trim();
 
     if(!name || !accessNo){
       setMsg("Please enter Name and Access No.", "crimson");
+      btn.disabled = false;
+      btn.textContent = "Mark Attendance";
       return;
     }
     if(!role){
       setMsg("Please select Role.", "crimson");
+      btn.disabled = false;
+      btn.textContent = "Mark Attendance";
       return;
     }
 
-    // Time lock first
     if(!isWithinISTWindow()){
       const nowText = getISTParts().text;
       showPopup("Attendance Time Out ⏰",
@@ -499,23 +502,23 @@
          <b>Current:</b> ${nowText}<br><br>
          Please call the admin for the change.<br><br>
          Thank you,<br><b>RS Home Care Admin</b>`);
+      btn.disabled = false;
+      btn.textContent = "Mark Attendance";
       return;
     }
 
     // Location check
-    btn.disabled = true;
-    btn.textContent = "Checking...";
     setMsg("Checking location...");
 
     let pos;
     try{
       pos = await getLocation();
     }catch(e){
-      btn.disabled = false;
-      btn.textContent = "Mark Attendance";
       showPopup("Location Required 📍",
         `Please allow location permission and try again.<br><br>
          <b>Tip:</b> Turn on GPS/Location in phone settings.`);
+      btn.disabled = false;
+      btn.textContent = "Mark Attendance";
       return;
     }
 
@@ -526,17 +529,18 @@
 
     locPill.textContent = `📍 Distance: ${dist}m (±${acc}m)`;
 
-    if(dist > ALLOWED_RADIUS_METERS){
-      btn.disabled = false;
-      btn.textContent = "Mark Attendance";
+    // ✅ Fix: allow for GPS accuracy
+    if(dist - acc > ALLOWED_RADIUS_METERS){
       showPopup("Wrong Location ❌",
         `You are not in a proper location.<br><br>
          Distance from office: <b>${dist} meters</b><br>
          Allowed radius: <b>${ALLOWED_RADIUS_METERS} meters</b>`);
+      btn.disabled = false;
+      btn.textContent = "Mark Attendance";
       return;
     }
 
-    // Save
+    // Save attendance
     btn.textContent = "Saving...";
     setMsg("Saving attendance...");
 
@@ -555,15 +559,15 @@
       setMsg("");
 
       if(data.ok){
-        clearOnClose = true; // ✅ clear after popup OK
+        clearOnClose = true;
         showPopup("Attendance Recorded ✅", `Thank you,<br><b>RS HOME CARE Team</b>`);
       }else{
         showPopup(data.error || "Failed ❌", `Please try again.<br><br><b>RS Home Care Admin</b>`);
       }
     }catch(e){
+      setMsg("Network error. Please try again.", "crimson");
       btn.disabled = false;
       btn.textContent = "Mark Attendance";
-      setMsg("Network error. Please try again.", "crimson");
     }
   });
 </script>
